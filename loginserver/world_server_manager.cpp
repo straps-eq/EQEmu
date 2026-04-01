@@ -401,43 +401,16 @@ bool WorldServerManager::SendFederatedClientAuth(const PendingFederatedAuth &aut
 		return false;
 	}
 
-	// Resolve account to master's local ID by name lookup
-	uint32_t resolved_account_id = auth.account_id;
-	{
-		auto results = database.QueryDatabase(
-			fmt::format(
-				"SELECT id FROM login_accounts WHERE account_name = '{}' LIMIT 1",
-				Strings::Escape(auth.account_name)
-			)
-		);
-
-		if (results.Success() && results.RowCount() > 0) {
-			auto row = results.begin();
-			resolved_account_id = std::stoul(row[0]);
-			if (resolved_account_id != auth.account_id) {
-				LogInfo(
-					"Federation auth_client: resolved account [{}] from mesh id [{}] to master id [{}]",
-					auth.account_name, auth.account_id, resolved_account_id
-				);
-			}
-		} else {
-			LogWarning(
-				"Federation auth_client: account [{}] not found in master login_accounts, using provided id [{}]",
-				auth.account_name, auth.account_id
-			);
-		}
-	}
-
 	LogInfo(
 		"Federation auth_client: sending ClientAuth for account [{}] ({}) to server [{}] ({})",
-		auth.account_name, resolved_account_id, (*iter)->GetServerLongName(), auth.server_id
+		auth.account_name, auth.account_id, (*iter)->GetServerLongName(), auth.server_id
 	);
 
 	// Build ClientAuth packet
 	EQ::Net::DynamicPacket outapp;
 	ClientAuth a{};
 
-	a.loginserver_account_id = resolved_account_id;
+	a.loginserver_account_id = auth.account_id;
 	strncpy(a.account_name, auth.account_name.c_str(), 30);
 	strncpy(a.key, auth.login_key.c_str(), 30);
 	a.lsadmin        = 0;
