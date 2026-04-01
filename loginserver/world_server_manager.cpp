@@ -3,8 +3,10 @@
 #include "common/eqemu_logsys.h"
 #include "common/ip_util.h"
 #include "loginserver/login_server.h"
+#include "loginserver/login_types.h"
 
 #include <utility>
+#include <arpa/inet.h>
 
 extern LoginServer server;
 extern bool        run_server;
@@ -91,6 +93,10 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 		}
 	}
 
+	// Refresh federated servers from DB (cached with TTL)
+	RefreshFederatedServers();
+	server_count += static_cast<unsigned int>(m_federated_servers.size());
+
 	SerializeBuffer buf;
 
 	// LoginBaseMessage_Struct header
@@ -134,6 +140,54 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 		);
 
 		s->SerializeForClientServerList(buf, use_local_ip, client->GetClientVersion());
+	}
+
+	// Append federated servers (synced from federation peers, not directly connected)
+	for (const auto &fs: m_federated_servers) {
+		LogDebug(
+			"CreateServerListPacket | Federated server [{}] IP [{}] players [{}] from node [{}]",
+			fs.long_name,
+			fs.remote_ip,
+			fs.players_online,
+			fs.federation_source_node_id
+		);
+
+		buf.WriteString(fs.remote_ip);
+
+		if (client->GetClientVersion() == cv_larion) {
+			buf.WriteUInt32(9000);
+		}
+
+		switch (fs.server_list_type_id) {
+			case LS::ServerType::Legends:
+				buf.WriteInt32(LS::ServerTypeFlags::Legends);
+				break;
+			case LS::ServerType::Preferred:
+				buf.WriteInt32(LS::ServerTypeFlags::Preferred);
+				break;
+			default:
+				buf.WriteInt32(LS::ServerTypeFlags::Standard);
+				break;
+		}
+
+		if (client->GetClientVersion() == cv_larion) {
+			buf.WriteUInt32(1);
+			buf.WriteUInt32(fs.id);
+		} else {
+			buf.WriteUInt32(fs.id);
+		}
+
+		buf.WriteString(fs.long_name);
+		buf.WriteString("us");
+		buf.WriteString("en");
+
+		if (fs.server_status < 0) {
+			buf.WriteInt32(fs.zones_booted == 0 ? LS::ServerStatusFlags::Down : LS::ServerStatusFlags::Locked);
+		} else {
+			buf.WriteInt32(LS::ServerStatusFlags::Up);
+		}
+
+		buf.WriteUInt32(fs.players_online);
 	}
 
 	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, buf);
@@ -215,4 +269,113 @@ void WorldServerManager::DestroyServerByName(
 const std::list<std::unique_ptr<WorldServer>> &WorldServerManager::GetWorldServers() const
 {
 	return m_world_servers;
+}
+
+void WorldServerManager::RefreshFederatedServers()
+{
+	auto now = std::chrono::steady_clock::now();
+	if (now - m_federated_servers_last_refresh < FEDERATED_CACHE_TTL) {
+		return;
+	}
+	m_federated_servers_last_refresh = now;
+	m_federated_servers.clear();
+
+	try {
+		auto results = database.QueryDatabase(
+			"SELECT lws.id, lws.long_name, lws.short_name, lws.login_server_list_type_id, "
+			"       lws.federation_source_node_id, "
+			"       COALESCE(fss.remote_ip, lws.last_ip_address, '') AS remote_ip, "
+			"       COALESCE(fss.players_online, 0) AS players_online, "
+			"       COALESCE(fss.server_status, 0) AS server_status, "
+			"       COALESCE(fss.zones_booted, 0) AS zones_booted "
+			"FROM login_world_servers lws "
+			"LEFT JOIN federation_server_status fss ON fss.world_server_id = lws.id "
+			"WHERE lws.federation_source_node_id > 0"
+		);
+
+		if (!results.Success()) {
+			LogError("Federation: failed to query federated servers: {}", results.ErrorMessage());
+			return;
+		}
+
+		for (auto row = results.begin(); row != results.end(); ++row) {
+			FederatedServer fs;
+			fs.id                        = std::stoul(row[0]);
+			fs.long_name                 = row[1] ? row[1] : "";
+			fs.short_name                = row[2] ? row[2] : "";
+			fs.server_list_type_id       = std::stoi(row[3] ? row[3] : "0");
+			fs.federation_source_node_id = std::stoul(row[4] ? row[4] : "0");
+			fs.remote_ip                 = row[5] ? row[5] : "";
+			fs.players_online            = std::stoul(row[6] ? row[6] : "0");
+			fs.server_status             = std::stoi(row[7] ? row[7] : "0");
+			fs.zones_booted              = std::stoul(row[8] ? row[8] : "0");
+
+			// Skip servers already connected directly (duplicate prevention)
+			bool is_connected = std::any_of(
+				m_world_servers.begin(), m_world_servers.end(),
+				[&](const std::unique_ptr<WorldServer> &ws) {
+					return ws->GetServerShortName() == fs.short_name;
+				}
+			);
+			if (is_connected) continue;
+
+			// Skip if no IP (can't connect without it)
+			if (fs.remote_ip.empty()) continue;
+
+			m_federated_servers.push_back(std::move(fs));
+		}
+
+		if (!m_federated_servers.empty()) {
+			LogInfo("Federation: loaded [{}] federated servers from DB", m_federated_servers.size());
+		}
+	} catch (const std::exception &e) {
+		LogError("Federation: exception querying federated servers: {}", e.what());
+	}
+}
+
+bool WorldServerManager::SendFederatedClientAuth(
+	uint32_t server_id,
+	uint32_t account_id,
+	const std::string &account_name,
+	const std::string &login_key,
+	const std::string &loginserver_name,
+	const std::string &client_ip
+)
+{
+	// Find the world server in our live connected list
+	auto iter = std::find_if(
+		m_world_servers.begin(), m_world_servers.end(),
+		[&](const std::unique_ptr<WorldServer> &s) {
+			return s->GetServerId() == server_id;
+		}
+	);
+
+	if (iter == m_world_servers.end()) {
+		LogError("Federation auth_client: server_id [{}] not found in live server list", server_id);
+		return false;
+	}
+
+	LogInfo(
+		"Federation auth_client: sending ClientAuth for account [{}] ({}) to server [{}] ({})",
+		account_name, account_id, (*iter)->GetServerLongName(), server_id
+	);
+
+	// Build ClientAuth packet
+	EQ::Net::DynamicPacket outapp;
+	ClientAuth a{};
+
+	a.loginserver_account_id = account_id;
+	strncpy(a.account_name, account_name.c_str(), 30);
+	strncpy(a.key, login_key.c_str(), 30);
+	a.lsadmin        = 0;
+	a.is_world_admin = 0;
+	a.ip_address     = inet_addr(client_ip.c_str());
+	strncpy(a.loginserver_name, loginserver_name.c_str(), 64);
+	a.is_client_from_local_network = 0;
+
+	outapp.PutSerialize(0, a);
+	(*iter)->GetConnection()->Send(ServerOP_LSClientAuth, outapp);
+
+	LogInfo("Federation auth_client: ClientAuth sent successfully for account [{}]", account_name);
+	return true;
 }

@@ -292,6 +292,49 @@ namespace LoginserverWebserver {
 			}
 		);
 
+		api.Post(
+			"/v1/federation/auth_client", [](const httplib::Request &request, httplib::Response &res) {
+				if (!LoginserverWebserver::TokenManager::AuthCanWrite(request, res)) {
+					return;
+				}
+
+				Json::Value req = LoginserverWebserver::ParseRequestBody(request);
+				uint32_t server_id       = req.get("server_id", 0).asUInt();
+				uint32_t account_id      = req.get("account_id", 0).asUInt();
+				std::string account_name = req.get("account_name", "").asString();
+				std::string login_key    = req.get("login_key", "").asString();
+				std::string ls_name      = req.get("loginserver_name", "").asString();
+				std::string client_ip    = req.get("client_ip", "0.0.0.0").asString();
+
+				Json::Value response;
+				if (server_id == 0 || account_id == 0 || account_name.empty() || login_key.empty()) {
+					res.status = HTTP_RESPONSE_BAD_REQUEST;
+					response["error"] = "Missing required fields: server_id, account_id, account_name, login_key";
+					LoginserverWebserver::SendResponse(response, res);
+					return;
+				}
+
+				LogInfo(
+					"Federation auth_client request: account [{}] ({}) -> server [{}] from [{}]",
+					account_name, account_id, server_id, client_ip
+				);
+
+				bool success = server.server_manager->SendFederatedClientAuth(
+					server_id, account_id, account_name, login_key, ls_name, client_ip
+				);
+
+				if (success) {
+					response["message"] = "ClientAuth sent successfully";
+					response["data"]["server_id"] = server_id;
+				} else {
+					res.status = HTTP_RESPONSE_BAD_REQUEST;
+					response["error"] = "Server not found in live server list";
+				}
+
+				LoginserverWebserver::SendResponse(response, res);
+			}
+		);
+
 		api.Get(
 			"/probes/healthcheck", [](const httplib::Request &request, httplib::Response &res) {
 				Json::Value response;

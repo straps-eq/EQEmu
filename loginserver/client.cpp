@@ -2,6 +2,8 @@
 #include "login_server.h"
 #include "encryption.h"
 #include "account_management.h"
+#include "common/http/httplib.h"
+#include "common/json/json.h"
 
 extern LoginServer server;
 
@@ -261,7 +263,142 @@ void Client::SendPlayToWorld(const char *data)
 	m_selected_play_server_id = (unsigned int) play->server_number;
 	m_play_sequence_id        = sequence_in;
 	m_selected_play_server_id = server_id_in;
-	server.server_manager->SendUserLoginToWorldRequest(server_id_in, m_account_id, m_loginserver_name);
+
+	// Check if this server is in our live connected list
+	bool is_local = std::any_of(
+		server.server_manager->GetWorldServers().begin(),
+		server.server_manager->GetWorldServers().end(),
+		[&](const std::unique_ptr<WorldServer> &s) {
+			return s->GetServerId() == server_id_in;
+		}
+	);
+
+	if (is_local) {
+		server.server_manager->SendUserLoginToWorldRequest(server_id_in, m_account_id, m_loginserver_name);
+		return;
+	}
+
+	// Server not connected locally — try federated auth forwarding
+	LogInfo("[SendPlayToWorld] Server [{}] not local, attempting federation auth forward", server_id_in);
+	HandleFederatedPlay(server_id_in);
+}
+
+void Client::HandleFederatedPlay(unsigned int server_id)
+{
+	// Look up the federation source node for this server
+	auto results = database.QueryDatabase(fmt::format(
+		"SELECT lws.federation_source_node_id, fn.endpoint_url "
+		"FROM login_world_servers lws "
+		"JOIN federation_nodes fn ON fn.id = lws.federation_source_node_id "
+		"WHERE lws.id = {} AND lws.federation_source_node_id > 0 "
+		"LIMIT 1",
+		server_id
+	));
+
+	if (!results.Success() || results.RowCount() == 0) {
+		LogError("Federation play: server [{}] not found as federated server", server_id);
+		SendPlayFailed();
+		return;
+	}
+
+	auto row = results.begin();
+	std::string endpoint_url = row[1] ? row[1] : "";
+	if (endpoint_url.empty()) {
+		LogError("Federation play: no endpoint URL for server [{}]", server_id);
+		SendPlayFailed();
+		return;
+	}
+
+	// Get the master's original server ID for this server
+	// The federated server's original ID on the master may differ from local ID
+	// We need to find it by short_name on the master — but for now, use the
+	// web app proxy which handles the mapping
+	auto srv_results = database.QueryDatabase(fmt::format(
+		"SELECT short_name FROM login_world_servers WHERE id = {} LIMIT 1", server_id
+	));
+	std::string short_name;
+	if (srv_results.Success() && srv_results.RowCount() > 0) {
+		auto srv_row = srv_results.begin();
+		short_name = srv_row[0] ? srv_row[0] : "";
+	}
+
+	LogInfo(
+		"Federation play: forwarding auth for account [{}] ({}) to master [{}] for server [{}] ({})",
+		GetAccountName(), m_account_id, endpoint_url, short_name, server_id
+	);
+
+	// Build the auth request JSON
+	Json::Value req_body;
+	req_body["server_short_name"] = short_name;
+	req_body["account_id"]        = m_account_id;
+	req_body["account_name"]      = GetAccountName();
+	req_body["login_key"]         = m_key;
+	req_body["loginserver_name"]  = m_loginserver_name;
+
+	in_addr client_in{};
+	client_in.s_addr = m_connection->GetRemoteIP();
+	req_body["client_ip"] = std::string(inet_ntoa(client_in));
+
+	std::stringstream body_ss;
+	body_ss << req_body;
+	std::string body_str = body_ss.str();
+
+	// Call the local web app to proxy the federation auth request
+	std::string web_host = server.config.GetVariableString("federation", "web_host", "web");
+	int         web_port = server.config.GetVariableInt("federation", "web_port", 3000);
+
+	try {
+		httplib::Client cli(web_host, web_port);
+		cli.set_connection_timeout(5, 0);
+		cli.set_read_timeout(10, 0);
+
+		auto result = cli.Post(
+			"/api/internal/federation-play",
+			body_str,
+			"application/json"
+		);
+
+		if (result && result->status == 200) {
+			LogInfo("Federation play: auth forwarded successfully for account [{}]", GetAccountName());
+			SendPlaySuccess();
+		} else {
+			int status = result ? result->status : 0;
+			std::string err_body = result ? result->body : "no response";
+			LogError("Federation play: forward failed status [{}] body [{}]", status, err_body);
+			SendPlayFailed();
+		}
+	} catch (const std::exception &e) {
+		LogError("Federation play: HTTP error: {}", e.what());
+		SendPlayFailed();
+	}
+}
+
+void Client::SendPlaySuccess()
+{
+	auto *outapp = new EQApplicationPacket(OP_PlayEverquestResponse, sizeof(PlayEverquestResponse));
+	auto *play   = (PlayEverquestResponse *) outapp->pBuffer;
+	play->base_header.sequence = m_play_sequence_id;
+	play->server_number        = m_selected_play_server_id;
+	play->base_reply.success      = true;
+	play->base_reply.error_str_id = LS::ErrStr::ERROR_NONE;
+
+	LogInfo("Sending federated play success for {}", GetClientLoggingDescription());
+	m_connection->QueuePacket(outapp);
+	delete outapp;
+}
+
+void Client::SendPlayFailed()
+{
+	auto *outapp = new EQApplicationPacket(OP_PlayEverquestResponse, sizeof(PlayEverquestResponse));
+	auto *play   = (PlayEverquestResponse *) outapp->pBuffer;
+	play->base_header.sequence = m_play_sequence_id;
+	play->server_number        = m_selected_play_server_id;
+	play->base_reply.success      = false;
+	play->base_reply.error_str_id = LS::ErrStr::ERROR_SERVER_UNAVAILABLE;
+
+	LogInfo("Sending federated play failed for {}", GetClientLoggingDescription());
+	m_connection->QueuePacket(outapp);
+	delete outapp;
 }
 
 void Client::SendServerListPacket(uint32 seq)

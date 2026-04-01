@@ -41,6 +41,11 @@ public:
 	bool VerifyAndUpdateLoginHash(LoginAccountContext c, const LoginAccountsRepository::LoginAccounts& a);
 	void DoSuccessfulLogin(LoginAccountsRepository::LoginAccounts& a);
 
+	// Federation: forward play request to master node for servers not connected locally
+	void HandleFederatedPlay(unsigned int server_id);
+	void SendPlaySuccess();
+	void SendPlayFailed();
+
 private:
 	EQ::Random                                          m_random;
 	std::shared_ptr<EQStreamInterface>                  m_connection;
