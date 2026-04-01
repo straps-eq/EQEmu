@@ -2,11 +2,9 @@
 
 #include "common/eqemu_logsys.h"
 #include "common/ip_util.h"
-#include "common/strings.h"
 #include "loginserver/login_server.h"
 #include "loginserver/login_types.h"
 
-#include <fmt/format.h>
 #include <utility>
 #include <arpa/inet.h>
 
