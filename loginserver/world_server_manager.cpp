@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 
 extern LoginServer server;
+extern Database    database;
 extern bool        run_server;
 
 WorldServerManager::WorldServerManager()
