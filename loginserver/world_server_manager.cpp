@@ -334,7 +334,7 @@ void WorldServerManager::RefreshFederatedServers()
 	}
 }
 
-bool WorldServerManager::SendFederatedClientAuth(
+bool WorldServerManager::QueueFederatedClientAuth(
 	uint32_t server_id,
 	uint32_t account_id,
 	const std::string &account_name,
@@ -343,7 +343,7 @@ bool WorldServerManager::SendFederatedClientAuth(
 	const std::string &client_ip
 )
 {
-	// Find the world server in our live connected list
+	// Verify the server exists before queuing (read-only check, safe from any thread)
 	auto iter = std::find_if(
 		m_world_servers.begin(), m_world_servers.end(),
 		[&](const std::unique_ptr<WorldServer> &s) {
@@ -357,26 +357,69 @@ bool WorldServerManager::SendFederatedClientAuth(
 	}
 
 	LogInfo(
-		"Federation auth_client: sending ClientAuth for account [{}] ({}) to server [{}] ({})",
+		"Federation auth_client: queuing ClientAuth for account [{}] ({}) to server [{}] ({})",
 		account_name, account_id, (*iter)->GetServerLongName(), server_id
+	);
+
+	// Queue for the main event loop thread to send (Send() is not thread-safe)
+	{
+		std::lock_guard<std::mutex> lock(m_federated_auth_mutex);
+		m_pending_federated_auths.push({server_id, account_id, account_name, login_key, loginserver_name, client_ip});
+	}
+
+	return true;
+}
+
+void WorldServerManager::ProcessPendingFederatedAuths()
+{
+	std::queue<PendingFederatedAuth> pending;
+	{
+		std::lock_guard<std::mutex> lock(m_federated_auth_mutex);
+		std::swap(pending, m_pending_federated_auths);
+	}
+
+	while (!pending.empty()) {
+		auto auth = std::move(pending.front());
+		pending.pop();
+		SendFederatedClientAuth(auth);
+	}
+}
+
+bool WorldServerManager::SendFederatedClientAuth(const PendingFederatedAuth &auth)
+{
+	auto iter = std::find_if(
+		m_world_servers.begin(), m_world_servers.end(),
+		[&](const std::unique_ptr<WorldServer> &s) {
+			return s->GetServerId() == auth.server_id;
+		}
+	);
+
+	if (iter == m_world_servers.end()) {
+		LogError("Federation auth_client: server_id [{}] no longer in live server list", auth.server_id);
+		return false;
+	}
+
+	LogInfo(
+		"Federation auth_client: sending ClientAuth for account [{}] ({}) to server [{}] ({})",
+		auth.account_name, auth.account_id, (*iter)->GetServerLongName(), auth.server_id
 	);
 
 	// Build ClientAuth packet
 	EQ::Net::DynamicPacket outapp;
 	ClientAuth a{};
 
-	a.loginserver_account_id = account_id;
-	strncpy(a.account_name, account_name.c_str(), 30);
-	strncpy(a.key, login_key.c_str(), 30);
+	a.loginserver_account_id = auth.account_id;
+	strncpy(a.account_name, auth.account_name.c_str(), 30);
+	strncpy(a.key, auth.login_key.c_str(), 30);
 	a.lsadmin        = 0;
 	a.is_world_admin = 0;
-	a.ip_address     = inet_addr(client_ip.c_str());
-	strncpy(a.loginserver_name, loginserver_name.c_str(), 64);
+	a.ip_address     = inet_addr(auth.client_ip.c_str());
+	strncpy(a.loginserver_name, auth.loginserver_name.c_str(), 64);
 	a.is_client_from_local_network = 0;
 
 	outapp.PutSerialize(0, a);
 	(*iter)->GetConnection()->Send(ServerOP_LSClientAuth, outapp);
 
-	LogInfo("Federation auth_client: ClientAuth sent successfully for account [{}]", account_name);
+	LogInfo("Federation auth_client: ClientAuth sent successfully for account [{}]", auth.account_name);
 	return true;
 }

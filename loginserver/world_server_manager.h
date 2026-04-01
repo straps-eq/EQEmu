@@ -8,6 +8,18 @@
 #include <list>
 #include <vector>
 #include <chrono>
+#include <mutex>
+#include <queue>
+
+// Pending federated auth request (queued from HTTP thread, sent from main loop)
+struct PendingFederatedAuth {
+	uint32_t    server_id;
+	uint32_t    account_id;
+	std::string account_name;
+	std::string login_key;
+	std::string loginserver_name;
+	std::string client_ip;
+};
 
 // Represents a world server synced from a federation peer (not directly connected)
 struct FederatedServer {
@@ -36,8 +48,8 @@ public:
 	void DestroyServerByName(std::string s, std::string server_short_name, WorldServer *ignore = nullptr);
 	const std::list<std::unique_ptr<WorldServer>> &GetWorldServers() const;
 
-	// Federation: send ClientAuth to a world server on behalf of a remote mesh node
-	bool SendFederatedClientAuth(
+	// Federation: queue ClientAuth to be sent on the main event loop thread
+	bool QueueFederatedClientAuth(
 		uint32_t server_id,
 		uint32_t account_id,
 		const std::string &account_name,
@@ -46,8 +58,12 @@ public:
 		const std::string &client_ip
 	);
 
+	// Process pending federated auth requests (called from main event loop)
+	void ProcessPendingFederatedAuths();
+
 private:
 	void RefreshFederatedServers();
+	bool SendFederatedClientAuth(const struct PendingFederatedAuth &auth);
 
 	std::unique_ptr<EQ::Net::ServertalkServer> m_server_connection;
 	std::list<std::unique_ptr<WorldServer>>    m_world_servers;
@@ -56,4 +72,8 @@ private:
 	std::vector<FederatedServer>                            m_federated_servers;
 	std::chrono::steady_clock::time_point                   m_federated_servers_last_refresh;
 	static constexpr std::chrono::seconds FEDERATED_CACHE_TTL{30};
+
+	// Thread-safe queue for federated auth requests (HTTP thread -> main loop)
+	std::mutex                          m_federated_auth_mutex;
+	std::queue<PendingFederatedAuth>     m_pending_federated_auths;
 };

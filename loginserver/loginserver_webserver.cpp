@@ -319,12 +319,12 @@ namespace LoginserverWebserver {
 					account_name, account_id, server_id, client_ip
 				);
 
-				bool success = server.server_manager->SendFederatedClientAuth(
+				bool success = server.server_manager->QueueFederatedClientAuth(
 					server_id, account_id, account_name, login_key, ls_name, client_ip
 				);
 
 				if (success) {
-					response["message"] = "ClientAuth sent successfully";
+					response["message"] = "ClientAuth queued successfully";
 					response["data"]["server_id"] = server_id;
 				} else {
 					res.status = HTTP_RESPONSE_BAD_REQUEST;

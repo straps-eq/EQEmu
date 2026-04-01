@@ -248,6 +248,7 @@ int main(int argc, char **argv)
 		}
 
 		server.client_manager->Process();
+		server.server_manager->ProcessPendingFederatedAuths();
 	};
 
 	EQ::Timer process_timer(loop_fn);
