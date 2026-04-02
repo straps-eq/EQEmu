@@ -43,6 +43,68 @@ EQEmulator has for over 20 years and always will be a <strong>fan-based, non-com
 
 ***
 
+<h2 align="center">🔀 Federation Fork — Loginserver Changes</h2>
+
+<p align="center">
+This is a <strong>fork</strong> of the EQEmu Server with <strong>federation support</strong> added to the loginserver.<br>
+Upstream: <a href="https://github.com/EQEmu/Server">EQEmu/Server</a> · Deployment: <a href="https://github.com/straps-eq/eqemulator-loginserver">straps-eq/eqemulator-loginserver</a>
+</p>
+
+All changes are confined to the `loginserver/` directory. The zone server, world server, and shared libraries are **unmodified**.
+
+### What This Fork Adds
+
+**Federated Server List** — The loginserver queries `login_world_servers` for servers synced from federation peers (`federation_source_node_id > 0`) and injects them into the EQ client's server list packet alongside locally connected servers. Results are cached with a 30-second TTL and deduplicated by `short_name` against live connections.
+
+**Cross-Node Play (Auth Forwarding)** — When a player selects a federated server, the loginserver forwards the authentication through a multi-hop chain:
+
+```
+EQ Client → Mesh Loginserver → Mesh Web App → Master Web App → Master Loginserver → World Server
+                (C++)        HTTP    (Next.js)   Ed25519   (Next.js)   HTTP    (C++)       TCP
+```
+
+1. `client.cpp` — `SendPlayToWorld()` checks if the server is local; if not, calls `HandleFederatedPlay()` which HTTP POSTs to the local web app at `/api/internal/federation-play`
+2. The web app signs the request with Ed25519 and forwards to the master node's `/api/federation/play_request`
+3. The master web app verifies the signature and calls the master loginserver's `/v1/federation/auth_client` API
+4. The master loginserver queues the `ClientAuth` packet and sends it to the world server from the main event loop
+
+**Thread-Safe Auth Queue** — The loginserver's HTTP API runs on a detached thread, but `WorldServer::Send()` is not thread-safe. Federation auth requests are queued via `QueueFederatedClientAuth()` (mutex-protected) and drained by `ProcessPendingFederatedAuths()` on the main event loop every 32ms. This prevents silently dropped packets.
+
+### Changed Files
+
+| File | Changes |
+|------|---------|
+| `loginserver/world_server_manager.h` | `FederatedServer` struct, `PendingFederatedAuth` struct, queue/mutex members, `RefreshFederatedServers()`, `QueueFederatedClientAuth()`, `ProcessPendingFederatedAuths()` |
+| `loginserver/world_server_manager.cpp` | `CreateServerListPacket()` injects federated servers, `RefreshFederatedServers()` with 30s cache + dedup, queue drain + `SendFederatedClientAuth()` |
+| `loginserver/loginserver_webserver.cpp` | New `POST /v1/federation/auth_client` endpoint |
+| `loginserver/main.cpp` | `ProcessPendingFederatedAuths()` added to main event loop |
+| `loginserver/client.cpp` | `SendPlayToWorld()` local-vs-federated check, `HandleFederatedPlay()`, `SendPlaySuccess()`, `SendPlayFailed()` |
+| `loginserver/client.h` | New method declarations |
+
+### Patched at Build Time
+
+| File | Patch |
+|------|-------|
+| `common/repositories/login_world_servers_repository.h` | Adds `federation_source_node_id` column to ORM |
+| `loginserver/world_server.cpp` | Persists `login_server_admin_id` from world server registration |
+
+### Configuration
+
+Added to `login.json`:
+
+```json
+{
+  "federation": {
+    "web_host": "web",
+    "web_port": 3000
+  }
+}
+```
+
+These point the loginserver to the local Next.js web app for federation auth forwarding.
+
+---
+
 <h3 align="center">
  Technical Overview & Reverse Engineering Effort
 </h1>
