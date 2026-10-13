@@ -1,8 +1,26 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #include "common/types.h"
 
 #include <string>
+#include <variant>
 
 #pragma pack(push)
 #pragma pack(1)
@@ -28,7 +46,7 @@ struct LoginHandShakeReply {
 };
 
 // variable length, can use directly if not serializing strings
-struct PlayerLoginReply {
+struct PlayerLoginReplyOld {
 	// base header excluded to make struct data easier to encrypt
 	//LoginBaseMessage base_header;
 	LoginBaseReplyMessage base_reply;
@@ -44,10 +62,90 @@ struct PlayerLoginReply {
 	int32_t offer_cooldown_minutes;     // guess (default: 0)
 	int32_t web_offer_number;           // web order view number, 0 nothing (default: 0)
 	int32_t web_offer_min_days;         // number of days to show offer (based on first offer time in client eqls ini) (default: 99)
-	int32_t web_offer_min_views;        // mininum views, -1 for no minimum, 0 for never shows (based on client eqls ini) (default: -1)
+	int32_t web_offer_min_views;        // minimum views, -1 for no minimum, 0 for never shows (based on client eqls ini) (default: -1)
 	int32_t web_offer_cooldown_minutes; // minimum minutes between offers (based on last offer time in client eqls ini) (default: 0)
 	char    username[1];                // variable length, if not empty client attempts to re-login to server select when quitting from char select and sends this in a struct
 	char    unknown[1];                 // variable length, password unlikely? client doesn't send this on re-login from char select
+
+	void    set_success(bool v) { base_reply.success = v; }
+	void    set_error_code(int32_t v) { base_reply.error_str_id = v; }
+	void    set_lsid(int32_t v) { lsid = v; }
+	void    set_show_player_count(bool v) { show_player_count = v; }
+	void    set_hardcoded_success_values() {
+				offer_min_days = 99;
+				offer_min_views = -1;
+				web_offer_min_days = 99;
+				web_offer_min_views = -1;
+			}
+};
+static_assert(sizeof(PlayerLoginReplyOld) == 58, "PlayerLoginReplyOld struct size does not match expected size");
+static_assert(std::is_trivially_copyable_v<PlayerLoginReplyOld>);
+static_assert(std::is_standard_layout_v<PlayerLoginReplyOld>);
+
+struct PlayerLoginReplyTOB {
+	LoginBaseReplyMessage base_reply;
+
+	int8_t  unk1                 = 0;
+	int8_t  unk2                 = 0;
+	int32_t lsid                 = -1;
+	char    key[11]              = {};
+	int32_t failed_attempts      = 0;
+	int32_t display_error_str_id = 0;
+	int32_t unk3                 = 0;
+	bool    show_player_count	 = false;
+	char    username[1]          = {};
+	char    unk4[1]              = {};
+
+	void    set_success(bool v) { base_reply.success = v; }
+	void    set_error_code(int32_t v) { display_error_str_id = v; base_reply.error_str_id = v; }
+	void    set_lsid(int32_t v) { lsid = v; }
+	void    set_show_player_count(bool v) { show_player_count = v; }
+	void    set_hardcoded_success_values() {}
+};
+static_assert(sizeof(PlayerLoginReplyTOB) == 38, "PlayerLoginReplyTOB struct size does not match expected size");
+static_assert(std::is_trivially_copyable_v<PlayerLoginReplyTOB>);
+static_assert(std::is_standard_layout_v<PlayerLoginReplyTOB>);
+
+class PlayerLoginReply {
+	std::variant<PlayerLoginReplyOld, PlayerLoginReplyTOB> v_;
+	static_assert(sizeof(PlayerLoginReplyOld::key) == sizeof(PlayerLoginReplyTOB::key), "Old and TOB key buffers must match in size due to code assumptions");
+public:
+	PlayerLoginReply(PlayerLoginReplyOld s) : v_(s) {}
+	PlayerLoginReply(PlayerLoginReplyTOB s) : v_(s) {}
+
+	void set_success(bool val) {
+		std::visit([val](auto& s) { s.set_success(val); }, v_);
+	}
+	void set_error_code(int32_t val) {
+		std::visit([val](auto& s) { s.set_error_code(val); }, v_);
+	}
+	void set_lsid(int32_t val) {
+		std::visit([val](auto& s) { s.set_lsid(val); }, v_);
+	}
+	void set_show_player_count(bool val) {
+		std::visit([val](auto& s) { s.set_show_player_count(val); }, v_);
+	}
+	void set_key(std::string_view s) {
+		std::visit([&](auto& st) {
+			const size_t n = s.copy(st.key, sizeof(st.key) - 1);
+			st.key[n] = '\0';
+		}, v_);
+	}
+	template<size_t N>
+	void set_key(const char (&s)[N]) {
+		static_assert(N != (sizeof(PlayerLoginReplyTOB::key) - 1), "Key literal does not match reply struct's key buffer (without null terminator)");
+		set_key(std::string_view{s, N - 1});
+	}
+
+	PlayerLoginReplyOld&       old()       { return std::get<PlayerLoginReplyOld>(v_); }
+	const PlayerLoginReplyOld& old() const { return std::get<PlayerLoginReplyOld>(v_); }
+
+	char* data() noexcept {
+		return std::visit([](auto& s) { return reinterpret_cast<char*>(&s); }, v_);
+	}
+	size_t size() const noexcept {
+		return std::visit([](auto const& s) { return sizeof(s); }, v_);
+	}
 };
 
 // variable length, for reference
@@ -83,12 +181,18 @@ struct PlayEverquestResponse {
 	uint32                server_number;
 };
 
+//for reference
+struct SystemFingerprint {
+	LoginBaseMessage base_header;
+	char fingerprint[1];
+};
+
 #pragma pack()
 
 enum LSClientVersion {
 	cv_titanium,
 	cv_sod,
-	cv_larion
+	cv_tob
 };
 
 enum LSClientStatus {
@@ -157,11 +261,14 @@ namespace LS {
 	namespace ErrStr {
 		constexpr static int ERROR_NONE               = 101; // No Error
 		constexpr static int ERROR_UNKNOWN            = 102; // Error - Unknown Error Occurred
+		constexpr static int ERROR_INVALID_CREDS      = 105; // Error - Invalid Account Name or Password
 		constexpr static int ERROR_ACTIVE_CHARACTER   = 111; // Error 1018: You currently have an active character on that EverQuest Server, please allow a minute for synchronization and try again.
+		constexpr static int ERROR_PASSWORD_RESET     = 112; // Require password reset
 		constexpr static int ERROR_SERVER_UNAVAILABLE = 326; // That server is currently unavailable.  Please check the EverQuest webpage for current server status and try again later.
 		constexpr static int ERROR_ACCOUNT_SUSPENDED  = 337; // This account is currently suspended.  Please contact customer service for more information.
 		constexpr static int ERROR_ACCOUNT_BANNED     = 338; // This account is currently banned.  Please contact customer service for more information.
 		constexpr static int ERROR_WORLD_MAX_CAPACITY = 339; // The world server is currently at maximum capacity and not allowing further logins until the number of players online decreases.  Please try again later.
+		constexpr static int ERROR_REQUIRE_2FA	      = 342; // This account requires two-factor authentication.
 	};
 }
 

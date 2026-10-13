@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "world_server.h"
 
 #include "common/ip_util.h"
@@ -689,19 +706,17 @@ bool WorldServer::ValidateWorldServerAdminLogin(
 
 void WorldServer::SerializeForClientServerList(SerializeBuffer &out, bool use_local_ip, LSClientVersion version) const
 {
-	// see LoginClientServerData_Struct
-	if (use_local_ip) {
-		out.WriteString(GetLocalIP());
-	}
-	else {
-		out.WriteString(m_remote_ip_address);
-	}
+	if (version == cv_tob) {
+		if (use_local_ip) {
+			out.WriteString(GetLocalIP());
+		}
+		else {
+			out.WriteString(m_remote_ip_address);
+		}
 
-	if (version == cv_larion) {
-		out.WriteUInt32(9000);
-	}
+		out.WriteInt32(9000); // port, not currently settable in eqemu but needed for compat
 
-	switch (GetServerListID()) {
+		switch (GetServerListID()) {
 		case LS::ServerType::Legends:
 			out.WriteInt32(LS::ServerTypeFlags::Legends);
 			break;
@@ -711,35 +726,74 @@ void WorldServer::SerializeForClientServerList(SerializeBuffer &out, bool use_lo
 		default:
 			out.WriteInt32(LS::ServerTypeFlags::Standard);
 			break;
-	}
-	if (version == cv_larion) {
-		auto server_id = m_server_id;
-		//if this is 0, the client will not show the server in the list
-		out.WriteUInt32(1);
-		out.WriteUInt32(server_id);
-	}
-	else {
+		}
+
+		out.WriteInt32(289); //unsure what this is yet
 		out.WriteUInt32(m_server_id);
-	}
 
-	out.WriteString(m_server_long_name);
-	out.WriteString("us"); // country code
-	out.WriteString("en"); // language code
+		out.WriteString(m_server_long_name);
+		out.WriteString("US"); // country code
+		out.WriteString("EN"); // language code
+		out.WriteString("Standard");
+		out.WriteString("This server has no description set currently.");
 
-	// 0 = Up, 1 = Down, 2 = Up, 3 = down, 4 = locked, 5 = locked(down)
-	if (GetStatus() < 0) {
-		if (GetZonesBooted() == 0) {
-			out.WriteInt32(LS::ServerStatusFlags::Down);
+		if (GetStatus() < 0) {
+			if (GetZonesBooted() == 0) {
+				out.WriteInt32(LS::ServerStatusFlags::Down);
+			}
+			else {
+				out.WriteInt32(LS::ServerStatusFlags::Locked);
+			}
 		}
 		else {
-			out.WriteInt32(LS::ServerStatusFlags::Locked);
+			out.WriteInt32(LS::ServerStatusFlags::Up);
 		}
+
+		out.WriteUInt32(GetPlayersOnline());
+		out.WriteInt32(31); //expansions
+		out.WriteInt32(0); //truebox
 	}
 	else {
-		out.WriteInt32(LS::ServerStatusFlags::Up);
-	}
+		// see LoginClientServerData_Struct
+		if (use_local_ip) {
+			out.WriteString(GetLocalIP());
+		}
+		else {
+			out.WriteString(m_remote_ip_address);
+		}
+				
+		switch (GetServerListID()) {
+			case LS::ServerType::Legends:
+				out.WriteInt32(LS::ServerTypeFlags::Legends);
+				break;
+			case LS::ServerType::Preferred:
+				out.WriteInt32(LS::ServerTypeFlags::Preferred);
+				break;
+			default:
+				out.WriteInt32(LS::ServerTypeFlags::Standard);
+				break;
+		}
 
-	out.WriteUInt32(GetPlayersOnline());
+		out.WriteUInt32(m_server_id);		
+		out.WriteString(m_server_long_name);
+		out.WriteString("us"); // country code
+		out.WriteString("en"); // language code
+		
+		// 0 = Up, 1 = Down, 2 = Up, 3 = down, 4 = locked, 5 = locked(down)
+		if (GetStatus() < 0) {
+			if (GetZonesBooted() == 0) {
+				out.WriteInt32(LS::ServerStatusFlags::Down);
+			}
+			else {
+				out.WriteInt32(LS::ServerStatusFlags::Locked);
+			}
+		}
+		else {
+			out.WriteInt32(LS::ServerStatusFlags::Up);
+		}
+		
+		out.WriteUInt32(GetPlayersOnline());
+	}
 }
 
 void WorldServer::FormatWorldServerName(char *name, int8 server_list_type)

@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "world_server_manager.h"
 
 #include "common/eqemu_logsys.h"
@@ -153,45 +170,74 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 			fs.federation_source_node_id
 		);
 
-		buf.WriteString(fs.remote_ip);
+		// Must stay byte-compatible with WorldServer::SerializeForClientServerList
+		if (client->GetClientVersion() == cv_tob) {
+			buf.WriteString(fs.remote_ip);
+			buf.WriteInt32(9000); // port, not currently settable in eqemu but needed for compat
 
-		if (client->GetClientVersion() == cv_larion) {
-			buf.WriteUInt32(9000);
-		}
+			switch (fs.server_list_type_id) {
+				case LS::ServerType::Legends:
+					buf.WriteInt32(LS::ServerTypeFlags::Legends);
+					break;
+				case LS::ServerType::Preferred:
+					buf.WriteInt32(LS::ServerTypeFlags::Preferred);
+					break;
+				default:
+					buf.WriteInt32(LS::ServerTypeFlags::Standard);
+					break;
+			}
 
-		switch (fs.server_list_type_id) {
-			case LS::ServerType::Legends:
-				buf.WriteInt32(LS::ServerTypeFlags::Legends);
-				break;
-			case LS::ServerType::Preferred:
-				buf.WriteInt32(LS::ServerTypeFlags::Preferred);
-				break;
-			default:
-				buf.WriteInt32(LS::ServerTypeFlags::Standard);
-				break;
-		}
-
-		if (client->GetClientVersion() == cv_larion) {
-			buf.WriteUInt32(1);
+			buf.WriteInt32(289); // unknown, matches upstream
 			buf.WriteUInt32(fs.id);
-		} else {
+
+			buf.WriteString(fs.long_name);
+			buf.WriteString("US"); // country code
+			buf.WriteString("EN"); // language code
+			buf.WriteString("Standard");
+			buf.WriteString("This server has no description set currently.");
+
+			if (fs.server_status < 0) {
+				buf.WriteInt32(fs.zones_booted == 0 ? LS::ServerStatusFlags::Down : LS::ServerStatusFlags::Locked);
+			} else {
+				buf.WriteInt32(LS::ServerStatusFlags::Up);
+			}
+
+			buf.WriteUInt32(fs.players_online);
+			buf.WriteInt32(31); // expansions
+			buf.WriteInt32(0);  // truebox
+		}
+		else {
+			buf.WriteString(fs.remote_ip);
+
+			switch (fs.server_list_type_id) {
+				case LS::ServerType::Legends:
+					buf.WriteInt32(LS::ServerTypeFlags::Legends);
+					break;
+				case LS::ServerType::Preferred:
+					buf.WriteInt32(LS::ServerTypeFlags::Preferred);
+					break;
+				default:
+					buf.WriteInt32(LS::ServerTypeFlags::Standard);
+					break;
+			}
+
 			buf.WriteUInt32(fs.id);
+
+			buf.WriteString(fs.long_name);
+			buf.WriteString("us");
+			buf.WriteString("en");
+
+			if (fs.server_status < 0) {
+				buf.WriteInt32(fs.zones_booted == 0 ? LS::ServerStatusFlags::Down : LS::ServerStatusFlags::Locked);
+			} else {
+				buf.WriteInt32(LS::ServerStatusFlags::Up);
+			}
+
+			buf.WriteUInt32(fs.players_online);
 		}
-
-		buf.WriteString(fs.long_name);
-		buf.WriteString("us");
-		buf.WriteString("en");
-
-		if (fs.server_status < 0) {
-			buf.WriteInt32(fs.zones_booted == 0 ? LS::ServerStatusFlags::Down : LS::ServerStatusFlags::Locked);
-		} else {
-			buf.WriteInt32(LS::ServerStatusFlags::Up);
-		}
-
-		buf.WriteUInt32(fs.players_online);
 	}
 
-	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, buf);
+	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, std::move(buf));
 }
 
 void WorldServerManager::SendUserLoginToWorldRequest(
