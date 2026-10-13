@@ -237,7 +237,7 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 		}
 	}
 
-	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, std::move(buf));
+	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, buf);
 }
 
 void WorldServerManager::SendUserLoginToWorldRequest(
