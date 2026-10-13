@@ -576,6 +576,9 @@ public:
 	void BulkSendTraderInventory(uint32 char_id);
 	void SendSingleTraderItem(uint32 char_id, int serial_number);
 	void BulkSendMerchantInventory(int merchant_id, int npcid);
+	void SendTOBMerchantClose(uint32 npc_id);
+	void SendTOBPointsMerchant(NPC *npc);
+	void SendAlternateCurrencyMerchantList(NPC *npc);
 
 	inline uint8 GetLanguageSkill(uint8 language_id) const { return m_pp.languages[language_id]; }
 
@@ -853,8 +856,8 @@ public:
 	void SetGuildRank(uint32 rank);
 	void SetGuildID(uint32 guild_id);
 	void SendGuildMOTD(bool GetGuildMOTDReply = false);
-	void SendGuildURL();
-	void SendGuildChannel();
+	void SendGuildURL(bool tob_window_open = false);
+	void SendGuildChannel(bool tob_window_open = false);
 	void SendGuildSpawnAppearance();
 	void SendGuildRanks();
 	void SendGuildMembers();
@@ -866,6 +869,7 @@ public:
 	void DoGuildTributeUpdate();
 	void SendGuildActiveTributes(uint32 guild_id);
 	void SendGuildFavorAndTimer(uint32 guild_id);
+	std::set<uint32> m_guild_names_sent; // ToB guild-name lookups already answered (OP_GuildNameRequest)
 	void SendGuildTributeOptInToggle(const GuildTributeMemberToggle* in);
 	void RequestGuildActiveTributes(uint32 guild_id);
 	void RequestGuildFavorAndTimer(uint32 guild_id);
@@ -953,6 +957,8 @@ public:
 	inline uint32 GetDuelTarget() const { return duel_target; }
 	inline bool IsDueling() const { return duelaccepted; }
 	inline void SetDuelTarget(uint32 set_id) { duel_target = set_id; }
+	inline bool IsDuelChallenger() const { return duel_challenger; }
+	inline void SetDuelChallenger(bool v) { duel_challenger = v; }
 	inline void SetDueling(bool duel) { duelaccepted = duel; }
 	// use this one instead
 	void MemSpell(int32 spell_id, int slot, bool update_client = true);
@@ -2050,6 +2056,7 @@ private:
 	bool guild_dirty{ true };	//used to control add/delete opcodes due to client bug in Ti thru RoF2
 	bool GuildBanker;
 	uint16 duel_target;
+	bool duel_challenger = false; // the side that sent the pending OP_RequestDuel
 	bool duelaccepted;
 	std::vector<uint32> keyring;
 	bool tellsoff; // GM /toggle
@@ -2166,6 +2173,8 @@ private:
 	PTimerList p_timers; //persistent timers
 	Timer hpupdate_timer;
 	Timer camp_timer;
+	void CompleteCamp();         // leave group/raid, save, mark instalog (camp_timer and ToB fast camp)
+	bool IsFastCampZone() const; // zones where ToB clients may fast camp
 	Timer bot_camp_timer;
 	Timer process_timer;
 	Timer consume_food_timer;

@@ -649,7 +649,7 @@ void Client::SetEXP(ExpSource exp_source, uint64 set_exp, uint64 set_aaxp, bool 
 				} else if (zone->IsHotzone()) {
 					Message(Chat::Experience, "You gain party experience (with a bonus)!");
 				} else {
-					MessageString(Chat::Experience, GAIN_GROUPXP);
+					if (ClientVersion() >= EQ::versions::ClientVersion::TOB) { MessageString(Chat::Experience, GAIN_GROUPXP, ""); } else { MessageString(Chat::Experience, GAIN_GROUPXP); }
 				}
 			} else if (IsRaidGrouped()) {
 				if (RuleI(Character, ShowExpValues) > 0) {
@@ -657,7 +657,7 @@ void Client::SetEXP(ExpSource exp_source, uint64 set_exp, uint64 set_aaxp, bool 
 				} else if (zone->IsHotzone()) {
 					Message(Chat::Experience, "You gained raid experience (with a bonus)!");
 				} else {
-					MessageString(Chat::Experience, GAIN_RAIDEXP);
+					if (ClientVersion() >= EQ::versions::ClientVersion::TOB) { MessageString(Chat::Experience, GAIN_RAIDEXP, ""); } else { MessageString(Chat::Experience, GAIN_RAIDEXP); }
 				}
 			} else {
 				if (RuleI(Character, ShowExpValues) > 0) {
@@ -665,7 +665,7 @@ void Client::SetEXP(ExpSource exp_source, uint64 set_exp, uint64 set_aaxp, bool 
 				} else if (zone->IsHotzone()) {
 					Message(Chat::Experience, "You gain experience (with a bonus)!");
 				} else {
-					MessageString(Chat::Experience, GAIN_XP);
+					if (ClientVersion() >= EQ::versions::ClientVersion::TOB) { MessageString(Chat::Experience, GAIN_XP, ""); } else { MessageString(Chat::Experience, GAIN_XP); }
 				}
 			}
 		}

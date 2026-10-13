@@ -227,11 +227,12 @@ int DatabaseUpdate::UpdateManifest(
 		LogInfo("Running database migrations. Please wait...");
 		LogInfo("{}", Strings::Repeat("-", BREAK_LENGTH));
 
-		auto filtered_entries = entries | std::views::filter(
+		// plain copy_if instead of std::views::filter: clang 14 + libstdc++ 12 can't compile range views
+		std::vector<ManifestEntry> sorted_entries;
+		std::copy_if(
+			entries.begin(), entries.end(), std::back_inserter(sorted_entries),
 			[version_low, version_high](const ManifestEntry& entry)
 			{ return entry.version > version_low && entry.version <= version_high; });
-
-		std::vector<ManifestEntry> sorted_entries{filtered_entries.begin(), filtered_entries.end()};
 		std::ranges::sort(sorted_entries, {}, &ManifestEntry::version);
 
 		for (const auto& entry : sorted_entries) {

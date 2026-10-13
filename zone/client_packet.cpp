@@ -246,6 +246,8 @@ void MapOpcodes()
 	ConnectedOpcodes[OP_GuildInviteAccept] = &Client::Handle_OP_GuildInviteAccept;
 	ConnectedOpcodes[OP_GuildLeader] = &Client::Handle_OP_GuildLeader;
 	ConnectedOpcodes[OP_GuildManageBanker] = &Client::Handle_OP_GuildManageBanker;
+	ConnectedOpcodes[OP_GuildNameRequest] = &Client::Handle_OP_GuildNameRequest;
+	ConnectedOpcodes[OP_GuildOpenGuildWindow] = &Client::Handle_OP_GuildOpenGuildWindow;
 	ConnectedOpcodes[OP_GuildPeace] = &Client::Handle_OP_GuildPeace;
 	ConnectedOpcodes[OP_GuildPromote] = &Client::Handle_OP_GuildPromote;
 	ConnectedOpcodes[OP_GuildPublicNote] = &Client::Handle_OP_GuildPublicNote;
@@ -844,7 +846,7 @@ void Client::CompleteConnect()
 		}
 	}
 
-	if(ClientVersion() == EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants)) {
+	if(ClientVersion() >= EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants)) {
 		SendParcelStatus();
 	}
 
@@ -1888,6 +1890,29 @@ void Client::Handle_OP_AAAction(const EQApplicationPacket *app)
 		LogAA("Activating AA [{}]", action->ability);
 		ActivateAlternateAdvancementAbility(action->ability, action->target_id);
 	}
+	else if (ClientVersion() >= EQ::versions::ClientVersion::TOB && (action->action == aaActionBuy || action->action == 10 || action->action == 11)) {
+		// ToB's Train (3, 10 = shift-click) and Buy All (11) send the ability id from the GroupID slot
+		// of OP_SendAATable, not the rank id: buy the next rank (Buy All: every affordable rank)
+		AA::Ability *ability = zone->GetAlternateAdvancementAbility(action->ability);
+		if (!ability) {
+			LogAA("ToB AA buy: unknown ability id [{}]", action->ability);
+			return;
+		}
+
+		const int max_buys = action->action == 11 ? 1000 : 1;
+		for (int i = 0; i < max_buys; ++i) {
+			const uint32 points = GetAA(ability->first_rank_id);
+			auto ability_rank   = zone->GetAlternateAdvancementAbilityAndRank(ability->id, points + 1);
+			if (!ability_rank.second || (i > 0 && !CanPurchaseAlternateAdvancementRank(ability_rank.second, true, true))) {
+				break;
+			}
+
+			PurchaseAlternateAdvancementRank(ability_rank.second->id);
+			if (GetAA(ability->first_rank_id) == points) {
+				break;
+			}
+		}
+	}
 	else if (action->action == aaActionBuy) {
 		PurchaseAlternateAdvancementRank(action->ability);
 	}
@@ -2315,12 +2340,9 @@ void Client::Handle_OP_AdventureMerchantSell(const EQApplicationPacket *app)
 	}
 
 	// 06/11/2016 This formula matches RoF2 client side calculation.
-	uint32 price = EQ::Clamp(
-		price,
-		EQ::ClampUpper(
-			(item->LDoNPrice + 1) * item->LDoNSellBackRate / 100,
-			item->LDoNPrice
-		),
+	// (was EQ::Clamp(price, ...) on the uninitialised 'price' itself, which could refund the full price)
+	uint32 price = EQ::ClampUpper(
+		(item->LDoNPrice + 1) * item->LDoNSellBackRate / 100,
 		item->LDoNPrice
 	);
 
@@ -2836,6 +2858,13 @@ void Client::Handle_OP_AltCurrencySell(const EQApplicationPacket *app)
 			return;
 		}
 
+		// stackables are bought MaxCharges doses for one price (Handle_OP_AltCurrencyPurchase), so their
+		// buy-back price is per dose; otherwise a 5-dose stack sold back for 5x what it cost.
+		// (rounds down, so cheap multi-dose items sell back for nothing)
+		if (inst->IsStackable() && item->MaxCharges > 1) {
+			cost /= item->MaxCharges;
+		}
+
 		if (!inst->IsStackable())
 		{
 			DeleteItemInInventory(sell->slot_id);
@@ -2961,6 +2990,9 @@ void Client::Handle_OP_AltCurrencySellSelection(const EQApplicationPacket *app)
 
 			if (!found) {
 				cost = 0;
+			}
+			else if (inst->IsStackable() && item->MaxCharges > 1) {
+				cost /= item->MaxCharges; // per dose, same as Handle_OP_AltCurrencySell
 			}
 		}
 		else {
@@ -4251,7 +4283,7 @@ void Client::Handle_OP_Bug(const EQApplicationPacket *app)
 
 void Client::Handle_OP_Camp(const EQApplicationPacket *app)
 {
-	if (ClientVersion() == EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants) && GetEngagedWithParcelMerchant()) {
+	if (ClientVersion() >= EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants) && GetEngagedWithParcelMerchant()) {
 		Stand();
 		MessageString(Chat::Yellow, TRADER_BUSY_TWO);
 		return;
@@ -4261,12 +4293,33 @@ void Client::Handle_OP_Camp(const EQApplicationPacket *app)
 		worldserver.StopLFP(CharacterID());
 	
 	if (ClientVersion() >= EQ::versions::ClientVersion::TOB) {
+		// ToB body: u32 camp mode (0 /camp, 1 desktop, 2 server, +100 for "/camp fast")
+		uint32 camp_mode = 0;
+		if (app->size >= sizeof(uint32)) {
+			memcpy(&camp_mode, app->pBuffer, sizeof(uint32));
+		}
+		const bool wants_instant = camp_mode >= 100;
+
 		if (!GetGM()) {
 			camp_timer.Start(29000, true);
 		}
 
-		auto outapp = new EQApplicationPacket(OP_Camp, 1);
-		FastQueuePacket(&outapp);
+		if (IsFastCampZone()) {
+			// OP_Logout {u8 cancel, u8 instant}: instant 0 = "Fast camp now?" prompt + countdown,
+			// 1 = log out now; either way the client answers with OP_Logout (Handle_OP_Logout)
+			auto outapp = new EQApplicationPacket(OP_Logout, 2);
+			outapp->pBuffer[0] = 0;
+			outapp->pBuffer[1] = wants_instant ? 1 : 0;
+			FastQueuePacket(&outapp);
+		}
+		else {
+			if (wants_instant) {
+				MessageString(Chat::Yellow, NOT_FAST_CAMP_ZONE);
+			}
+
+			auto outapp = new EQApplicationPacket(OP_Camp, 1); // 0 = plain 30 second countdown
+			FastQueuePacket(&outapp);
+		}
 	}
 	else {
 		if (GetGM())
@@ -4333,7 +4386,7 @@ void Client::Handle_OP_CancelTrade(const EQApplicationPacket *app)
 		trade->Reset();
 	}
 
-	if (ClientVersion() == EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants)) {
+	if (ClientVersion() >= EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants)) {
 		DoParcelCancel();
 		SetEngagedWithParcelMerchant(false);
 	}
@@ -6011,7 +6064,12 @@ void Client::Handle_OP_DuelDecline(const EQApplicationPacket *app)
 
 	Entity* entity = entity_list.GetID(ds->target_id);
 	Entity* initiator = entity_list.GetID(ds->entity_id);
-	if (!entity->IsClient() || !initiator->IsClient()) {
+	if (!entity || !initiator || !entity->IsClient() || !initiator->IsClient()) {
+		return;
+	}
+
+	// ToB also sends this automatically ("busy") when it gets a challenge; never let that cancel a duel in progress
+	if (entity->CastToClient()->IsDueling() || initiator->CastToClient()->IsDueling()) {
 		return;
 	}
 
@@ -6019,10 +6077,18 @@ void Client::Handle_OP_DuelDecline(const EQApplicationPacket *app)
 	entity->CastToClient()->SetDueling(false);
 	initiator->CastToClient()->SetDuelTarget(0);
 	initiator->CastToClient()->SetDueling(false);
-	if (GetID() == initiator->GetID()) {
-		entity->CastToClient()->MessageString(Chat::NPCQuestSay, DUEL_DECLINE, initiator->GetName());
+	Client* other = (GetID() == initiator->GetID()) ? entity->CastToClient() : initiator->CastToClient();
+	if (other->ClientVersion() >= EQ::versions::ClientVersion::TOB) {
+		// ToB keeps the pending challenge in client state; its own decline packet clears it and prints the
+		// "%1 has declined" message (otherwise a later challenge shows as "accepted" immediately)
+		auto outapp = new EQApplicationPacket(OP_DuelDecline, sizeof(DuelResponse_Struct));
+		auto dr = (DuelResponse_Struct *) outapp->pBuffer;
+		dr->target_id = other->GetID();
+		dr->entity_id = GetID();
+		dr->unknown   = 0;
+		other->FastQueuePacket(&outapp);
 	} else {
-		initiator->CastToClient()->MessageString(Chat::NPCQuestSay, DUEL_DECLINE, entity->GetName());
+		other->MessageString(Chat::NPCQuestSay, DUEL_DECLINE, GetName());
 	}
 	return;
 }
@@ -8448,6 +8514,38 @@ void Client::Handle_OP_GuildLeader(const EQApplicationPacket *app)
 	return;
 }
 
+// ToB asks for names of guilds it hasn't seen (it shows "Unknown Guild" meanwhile and re-asks on every miss).
+void Client::Handle_OP_GuildNameRequest(const EQApplicationPacket *app)
+{
+	if (app->size != sizeof(uint32)) {
+		return;
+	}
+
+	uint32 guild_id = 0;
+	memcpy(&guild_id, app->pBuffer, sizeof(uint32));
+	if (guild_id == GUILD_NONE || !m_guild_names_sent.insert(guild_id).second) {
+		return; // answered already: the client caches the name, so a repeat means it doesn't exist
+	}
+
+	auto outapp = new EQApplicationPacket(OP_GuildRenameGuild, sizeof(GuildRenameGuild_Struct));
+	auto gr     = (GuildRenameGuild_Struct *) outapp->pBuffer;
+	gr->guild_id = guild_id;
+	strn0cpy(gr->new_guild_name, guild_mgr.GetGuildNameByID(guild_id).c_str(), sizeof(gr->new_guild_name));
+	FastQueuePacket(&outapp);
+}
+
+// Sent when the guild window opens (RoF2 0x0276 / ToB 0x6079). The window exists now, so ToB can take the
+// guild URL and channel (sending them earlier crashes the ToB client).
+void Client::Handle_OP_GuildOpenGuildWindow(const EQApplicationPacket *app)
+{
+	if (!IsInAGuild() || ClientVersion() < EQ::versions::ClientVersion::TOB) {
+		return;
+	}
+
+	SendGuildURL(true);
+	SendGuildChannel(true);
+}
+
 void Client::Handle_OP_GuildManageBanker(const EQApplicationPacket *app)
 {
 
@@ -10245,6 +10343,17 @@ void Client::Handle_OP_LoadSpellSet(const EQApplicationPacket *app)
 void Client::Handle_OP_Logout(const EQApplicationPacket *app)
 {
 	LogDebug("[{}] sent a logout packet", GetName());
+
+	// ToB fast camp: OP_Logout arrives when the player accepts the prompt (or at once for /camp fast),
+	// before camp_timer fires; finish the camp now so this is a clean logout, not a linkdead
+	if (ClientVersion() >= EQ::versions::ClientVersion::TOB && (camp_timer.Enabled() || GetGM())) {
+		if (camp_timer.Enabled()) {
+			CompleteCamp();
+		}
+		SendLogoutPackets();
+		Disconnect();
+		return;
+	}
 
 	SendLogoutPackets();
 
@@ -13597,6 +13706,32 @@ void Client::Handle_OP_RequestDuel(const EQApplicationPacket *app)
 	ds->duel_initiator = ds->duel_target;
 	ds->duel_target = duel;
 	Entity* entity = entity_list.GetID(ds->duel_target);
+	if (!entity) {
+		safe_delete(outapp);
+		return;
+	}
+
+	// The ToB client accepts a challenge with /duel, which sends OP_RequestDuel back to the challenger
+	// (no OP_DuelAccept follows). Only the challenged side's /duel is an accept; the challenger
+	// repeating /duel must not start the duel for the other player.
+	if (
+		GetID() != ds->duel_target &&
+		entity->IsClient() &&
+		!IsDueling() &&
+		!entity->CastToClient()->IsDueling() &&
+		!IsDuelChallenger() &&
+		entity->CastToClient()->IsDuelChallenger() &&
+		GetDuelTarget() == entity->GetID() &&
+		entity->CastToClient()->GetDuelTarget() == GetID()
+	) {
+		safe_delete(outapp);
+		EQApplicationPacket accept(OP_DuelAccept, sizeof(Duel_Struct));
+		auto as = (Duel_Struct *) accept.pBuffer;
+		as->duel_initiator = entity->GetID();
+		as->duel_target    = GetID();
+		Handle_OP_DuelAccept(&accept);
+		return;
+	}
 
 	if (
 		GetID() != ds->duel_target &&
@@ -13623,6 +13758,8 @@ void Client::Handle_OP_RequestDuel(const EQApplicationPacket *app)
 	) {
 		SetDuelTarget(ds->duel_target);
 		entity->CastToClient()->SetDuelTarget(GetID());
+		SetDuelChallenger(true);
+		entity->CastToClient()->SetDuelChallenger(false);
 		ds->duel_target = ds->duel_initiator;
 		entity->CastToClient()->FastQueuePacket(&outapp);
 		entity->CastToClient()->SetDueling(false);
@@ -13656,6 +13793,11 @@ void Client::Handle_OP_RespawnWindow(const EQApplicationPacket *app)
 		return;
 	}
 	char *Buffer = (char *)app->pBuffer;
+
+	// ignore repeat clicks after the player has already respawned
+	if (!IsHoveringForRespawn()) {
+		return;
+	}
 
 	uint32 Option = VARSTRUCT_DECODE_TYPE(uint32, Buffer);
 	HandleRespawnFromHover(Option);
@@ -14569,6 +14711,98 @@ void Client::Handle_OP_ShopPlayerSell(const EQApplicationPacket *app)
 	return;
 }
 
+void Client::SendTOBMerchantClose(uint32 npc_id)
+{
+	auto outapp = new EQApplicationPacket(OP_ShopRequest, sizeof(MerchantClick_Struct));
+	auto mco    = (MerchantClick_Struct *) outapp->pBuffer;
+	mco->npc_id  = npc_id;
+	mco->command = MerchantActions::Close;
+	QueuePacket(outapp);
+	safe_delete(outapp);
+}
+
+// ToB opens adventure / alt currency merchants with the regular merchant window; the currency
+// rides in MerchantClick_Struct::unknown020 (ldon category in the low byte, currency id above it)
+void Client::SendTOBPointsMerchant(NPC *npc)
+{
+	const uint32 merchant_id = npc->MerchantType;
+	if (!merchant_id || !npc->IsMerchantOpen() || npc->IsEngaged() || npc->Charmed() || GetFeigned() || IsInvisible()) {
+		if (!npc->IsMerchantOpen()) {
+			npc->SayString(zone->random.Int(MERCHANT_CLOSED_ONE, MERCHANT_CLOSED_THREE));
+		}
+		SendTOBMerchantClose(npc->GetID());
+		return;
+	}
+
+	uint32 currency = 0;
+	if (npc->GetClass() == Class::AlternateCurrencyMerchant) {
+		currency = npc->GetAltCurrencyType();
+	} else if (npc->GetClass() == Class::LoyaltyMerchant) {
+		currency = 999999;
+	}
+
+	auto outapp = new EQApplicationPacket(OP_ShopRequest, sizeof(MerchantClick_Struct));
+	auto mco    = (MerchantClick_Struct *) outapp->pBuffer;
+	mco->npc_id      = npc->GetID();
+	mco->player_id   = GetID();
+	mco->command     = MerchantActions::Open;
+	mco->rate        = 1.0f;
+	mco->tab_display = SellBuy;
+	mco->unknown020  = static_cast<int32>(currency << 8);
+	QueuePacket(outapp);
+	safe_delete(outapp);
+
+	// alt currency: the ToB Buy button reads this list (sent after the window is open)
+	if (npc->GetClass() == Class::AlternateCurrencyMerchant) {
+		SendAlternateCurrencyMerchantList(npc);
+	}
+
+	BulkSendMerchantInventory(merchant_id, npc->GetNPCTypeID());
+	SetMerchantSessionEntityID(npc->GetID());
+}
+
+// same list as the RoF2 OP_AltCurrencyMerchantReply: "cur|1|cur|count^name|id|cost|0|1|races|classes^..."
+void Client::SendAlternateCurrencyMerchantList(NPC *npc)
+{
+	const uint32 currency_id = npc->GetAltCurrencyType();
+	if (!currency_id || !zone->GetCurrencyItemID(currency_id)) {
+		return;
+	}
+
+	std::stringstream ss;
+	std::stringstream item_ss;
+	ss << currency_id << "|1|" << currency_id;
+	uint32 count = 0;
+
+	const auto faction_id = npc->GetPrimaryFaction();
+	for (const auto &ml : zone->merchanttable[npc->MerchantType]) {
+		if (count >= 255) {
+			break;
+		}
+
+		if (GetLevel() < ml.level_required) {
+			continue;
+		}
+
+		if (faction_id && GetModCharacterFactionLevel(faction_id) < ml.faction_required) {
+			continue;
+		}
+
+		const EQ::ItemData *item = database.GetItem(ml.item);
+		if (item) {
+			item_ss << "^" << item->Name << "|" << item->ID << "|" << ml.alt_currency_cost << "|0|1|"
+					<< item->Races << "|" << item->Classes;
+			count++;
+		}
+	}
+
+	ss << "|" << count << item_ss.str();
+
+	auto outapp = new EQApplicationPacket(OP_AltCurrencyMerchantReply, ss.str().length() + 1);
+	memcpy(outapp->pBuffer, ss.str().c_str(), ss.str().length());
+	FastQueuePacket(&outapp);
+}
+
 void Client::Handle_OP_ShopRequest(const EQApplicationPacket *app)
 {
 	if (app->size != sizeof(MerchantClick_Struct)) {
@@ -14585,6 +14819,31 @@ void Client::Handle_OP_ShopRequest(const EQApplicationPacket *app)
 	int tabs_to_display = None;
 	Mob *tmp            = entity_list.GetMob(mc->npc_id);
 
+	// ToB sends OP_ShopRequest for every merchant class (adventure, alt currency, ...) and stays
+	// busy until it gets a reply, so it always gets one: a points merchant window, or a close
+	if (ClientVersion() >= EQ::versions::ClientVersion::TOB) {
+		if (tmp && tmp->IsNPC() && DistanceSquared(m_Position, tmp->GetPosition()) <= USE_NPC_RANGE2) {
+			switch (tmp->GetClass()) {
+				case Class::Merchant:
+					break;
+				case Class::DiscordMerchant:
+				case Class::AdventureMerchant:
+				case Class::NorrathsKeepersMerchant:
+				case Class::DarkReignMerchant:
+				case Class::AlternateCurrencyMerchant:
+				case Class::LoyaltyMerchant:
+					SendTOBPointsMerchant(tmp->CastToNPC());
+					return;
+				default:
+					SendTOBMerchantClose(mc->npc_id);
+					return;
+			}
+		} else {
+			SendTOBMerchantClose(mc->npc_id);
+			return;
+		}
+	}
+
 	if (tmp == 0 || !tmp->IsNPC() || tmp->GetClass() != Class::Merchant) {
 		return;
 	}
@@ -14596,7 +14855,7 @@ void Client::Handle_OP_ShopRequest(const EQApplicationPacket *app)
 
 	merchant_id = tmp->CastToNPC()->MerchantType;
 
-	if (ClientVersion() == EQ::versions::ClientVersion::RoF2 && tmp->CastToNPC()->GetParcelMerchant()) {
+	if (ClientVersion() >= EQ::versions::ClientVersion::RoF2 && tmp->CastToNPC()->GetParcelMerchant()) {
 		tabs_to_display = SellBuyParcel;
 	}
 	else {

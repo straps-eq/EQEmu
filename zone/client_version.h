@@ -61,7 +61,7 @@ inline auto QueueClients(Mob* sender, bool ignore_sender = false, bool ackreq = 
 	{
 		std::array<std::unique_ptr<EQApplicationPacket>, EQ::versions::ClientVersionCount> build_packets;
 
-		for (auto ent : entity_list.GetClientList() | std::views::values) {
+		for (const auto& [ent_id, ent] : entity_list.GetClientList()) {
 			if (!ignore_sender || ent != sender) {
 				auto& packet = build_packets.at(static_cast<uint32_t>(ent->ClientVersion()));
 				if (!packet)
@@ -91,7 +91,7 @@ inline auto QueueCloseClients(
 			float distance_squared = distance * distance;
 			std::array<std::unique_ptr<EQApplicationPacket>, EQ::versions::ClientVersionCount> build_packets;
 
-			for (auto mob : sender->GetCloseMobList(distance) | std::views::values) {
+			for (const auto& [mob_id, mob] : sender->GetCloseMobList(distance)) {
 				if (mob && mob->IsClient()) {
 					Client* client = mob->CastToClient();
 					if ((!ignore_sender || client != sender)
@@ -136,7 +136,7 @@ inline auto QueueClientsByTarget(Mob* sender, bool ackreq, const SendPredicate& 
 		if (sender != nullptr) {
 			std::array<std::unique_ptr<EQApplicationPacket>, EQ::versions::ClientVersionCount> build_packets;
 
-			for (auto c : entity_list.GetClientList() | std::views::values) {
+			for (const auto& [c_id, c] : entity_list.GetClientList()) {
 				Mob* Target = c->GetTarget();
 				if (Target == sender && should_send(c)) {
 					auto& packet = build_packets.at(static_cast<uint32_t>(c->ClientVersion()));

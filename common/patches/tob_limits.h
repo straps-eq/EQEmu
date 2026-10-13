@@ -326,6 +326,11 @@ namespace TOB
 		const int SHORT_BUFFS = 30;
 		const int DISC_BUFFS = 1;
 		const int TOTAL_BUFFS = LONG_BUFFS + SHORT_BUFFS + DISC_BUFFS;
+		// The ToB client's affect array is 62 long + 30 short + 1 disc = 93 slots; the song window only
+		// shows slots 62..91. The server keeps LONG_BUFFS (42) as its
+		// own cap; these are only used to translate slot numbers on the wire.
+		const int CLIENT_LONG_BUFFS = 62;
+		const int CLIENT_SHORT_BUFFS = 30;
 		const int NPC_BUFFS = 400;
 		const int PET_BUFFS = NPC_BUFFS;
 		const int MERC_BUFFS = LONG_BUFFS;

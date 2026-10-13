@@ -1456,7 +1456,11 @@ uint8* ZoneGuildManager::MakeGuildMembers(uint32 guild_id, const char* prefix_na
 	auto gms = (Internal_GuildMembers_Struct*)retbuffer;
 
 	//fill in the global header
-	strcpy(gms->player_name, prefix_name);
+	memset(gms->player_name, 0, sizeof(gms->player_name));
+	strn0cpy(gms->player_name, prefix_name, 60);
+	// ToB needs the guild id in the member list header; stash it in the unused tail of player_name
+	// (read by TOB::ENCODE(OP_GuildMemberList); other clients only use the NUL-terminated name).
+	memcpy(gms->player_name + 60, &guild_id, sizeof(uint32));
 	gms->count       = members.size();
 	gms->name_length = name_len;
 	gms->note_length = note_len;

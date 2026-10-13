@@ -61,7 +61,7 @@ void Client::SendGuildMOTD(bool GetGuildMOTDReply) {
 	FastQueuePacket(&outapp);
 }
 
-void Client::SendGuildURL()
+void Client::SendGuildURL(bool tob_window_open)
 {
 	if (ClientVersion() < EQ::versions::ClientVersion::SoF)
 		return;
@@ -76,6 +76,9 @@ void Client::SendGuildURL()
 		if(guild_mgr.GetGuildURL(GuildID(), guuacs->Text))
 		{
 			guuacs->Action = GuildUpdateURL;
+			if (tob_window_open) {
+				memcpy(guuacs->Unknown0004, "TOBW", 4); // ToB: safe to deliver (see TOB::ENCODE(OP_GuildUpdate))
+			}
 			FastQueuePacket(&outapp);
 		}
 		else
@@ -83,7 +86,7 @@ void Client::SendGuildURL()
 	}
 }
 
-void Client::SendGuildChannel()
+void Client::SendGuildChannel(bool tob_window_open)
 {
 	if (ClientVersion() < EQ::versions::ClientVersion::SoF)
 		return;
@@ -98,6 +101,9 @@ void Client::SendGuildChannel()
 		if(guild_mgr.GetGuildChannel(GuildID(), guuacs->Text))
 		{
 			guuacs->Action = GuildUpdateChannel;
+			if (tob_window_open) {
+				memcpy(guuacs->Unknown0004, "TOBW", 4);
+			}
 
 			FastQueuePacket(&outapp);
 		}
