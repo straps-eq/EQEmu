@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_parser_events.h"
@@ -310,7 +327,7 @@ void handle_npc_death(
 	lua_pushinteger(L, Strings::ToInt(sep.arg[1]));
 	lua_setfield(L, -2, "damage");
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[2]);
+	const int32 spell_id = Strings::ToInt(sep.arg[2]);
 	if (IsValidSpell(spell_id)) {
 		Lua_Spell l_spell(&spells[spell_id]);
 		luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);
@@ -367,7 +384,7 @@ void handle_npc_cast(
 ) {
 	Seperator sep(data.c_str());
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 spell_id = Strings::ToInt(sep.arg[0]);
 	Lua_Spell l_spell(IsValidSpell(spell_id) ? &spells[spell_id] : nullptr);
 	luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);
 	l_spell_o.push(L);
@@ -652,14 +669,14 @@ void handle_npc_spell_blocked(
 	lua_pushinteger(L, Strings::ToUnsignedInt(sep.arg[1]));
 	lua_setfield(L, -2, "cast_spell_id");
 
-	const uint32 blocking_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 blocking_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_one(IsValidSpell(blocking_spell_id) ? &spells[blocking_spell_id] : nullptr);
 	luabind::adl::object l_spell_one_o = luabind::adl::object(L, l_spell_one);
 	l_spell_one_o.push(L);
 	lua_setfield(L, -2, "blocking_spell");
 
-	const uint32 cast_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 cast_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_two(IsValidSpell(cast_spell_id) ? &spells[cast_spell_id] : nullptr);
 	luabind::adl::object l_spell_two_o = luabind::adl::object(L, l_spell_two);
@@ -741,7 +758,7 @@ void handle_player_death(
 	lua_pushinteger(L, Strings::ToInt(sep.arg[1]));
 	lua_setfield(L, -2, "damage");
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[2]);
+	const int32 spell_id = Strings::ToInt(sep.arg[2]);
 	if (IsValidSpell(spell_id)) {
 		Lua_Spell l_spell(&spells[spell_id]);
 		luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);
@@ -1767,14 +1784,14 @@ void handle_player_spell_blocked(
 	lua_pushinteger(L, Strings::ToUnsignedInt(sep.arg[1]));
 	lua_setfield(L, -2, "cast_spell_id");
 
-	const uint32 blocking_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 blocking_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_one(IsValidSpell(blocking_spell_id) ? &spells[blocking_spell_id] : nullptr);
 	luabind::adl::object l_spell_one_o = luabind::adl::object(L, l_spell_one);
 	l_spell_one_o.push(L);
 	lua_setfield(L, -2, "blocking_spell");
 
-	const uint32 cast_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 cast_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_two(IsValidSpell(cast_spell_id) ? &spells[cast_spell_id] : nullptr);
 	luabind::adl::object l_spell_two_o = luabind::adl::object(L, l_spell_two);
@@ -2066,7 +2083,7 @@ void handle_spell_event(
 	lua_State* L,
 	Mob* mob,
 	Client* client,
-	uint32 spell_id,
+	int32 spell_id,
 	std::string data,
 	uint32 extra_data,
 	std::vector<std::any> *extra_pointers
@@ -2115,7 +2132,7 @@ void handle_translocate_finish(
 	lua_State* L,
 	Mob* mob,
 	Client* client,
-	uint32 spell_id,
+	int32 spell_id,
 	std::string data,
 	uint32 extra_data,
 	std::vector<std::any> *extra_pointers
@@ -2167,7 +2184,7 @@ void handle_spell_null(
 	lua_State* L,
 	Mob* mob,
 	Client* client,
-	uint32 spell_id,
+	int32 spell_id,
 	std::string data,
 	uint32 extra_data,
 	std::vector<std::any> *extra_pointers
@@ -2323,6 +2340,53 @@ void handle_player_merchant(
 	lua_setfield(L, -2, "item_cost");
 }
 
+void handle_player_merchant_open(
+	QuestInterface* parse,
+	lua_State* L,
+	Client* client,
+	std::string data,
+	uint32 extra_data,
+	std::vector<std::any>* extra_pointers
+) {
+	if (!extra_pointers || extra_pointers->size() < 1) return;
+
+	auto mob_ptr = std::any_cast<Mob*>(extra_pointers->at(0));
+	if (!mob_ptr) return;
+
+	Lua_Mob l_mob(mob_ptr);
+	luabind::adl::object l_mob_o = luabind::adl::object(L, l_mob);
+	l_mob_o.push(L);
+	lua_setfield(L, -2, "other");
+}
+
+void handle_player_merchant_presell(
+	QuestInterface* parse,
+	lua_State* L,
+	Client* client,
+	std::string data,
+	uint32 extra_data,
+	std::vector<std::any>* extra_pointers
+) {
+	Seperator sep(data.c_str());
+	lua_pushinteger(L, Strings::ToInt(sep.arg[0])); lua_setfield(L, -2, "slot_id");
+	lua_pushinteger(L, Strings::ToInt(sep.arg[1])); lua_setfield(L, -2, "item_id");
+	lua_pushinteger(L, Strings::ToInt(sep.arg[2])); lua_setfield(L, -2, "item_type");
+
+	if (!extra_pointers || extra_pointers->size() < 2) return;
+
+	auto mob_ptr = std::any_cast<Mob*>(extra_pointers->at(0));
+	auto inst_ptr = std::any_cast<EQ::ItemInstance*>(extra_pointers->at(1));
+	if (!mob_ptr || !inst_ptr) return;
+
+	Lua_Mob l_mob(mob_ptr);
+	luabind::adl::object(L, l_mob).push(L);
+	lua_setfield(L, -2, "other");
+
+	Lua_ItemInst l_iteminst(inst_ptr);
+	luabind::adl::object(L, l_iteminst).push(L);
+	lua_setfield(L, -2, "item");
+}
+
 void handle_player_augment_insert(
 	QuestInterface *parse,
 	lua_State* L,
@@ -2443,7 +2507,7 @@ void handle_bot_cast(
 ) {
 	Seperator sep(data.c_str());
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 spell_id = Strings::ToInt(sep.arg[0]);
 	Lua_Spell l_spell(IsValidSpell(spell_id) ? &spells[spell_id] : nullptr);
 	luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);
 	l_spell_o.push(L);
@@ -2507,7 +2571,7 @@ void handle_bot_death(
 	lua_pushinteger(L, Strings::ToInt(sep.arg[1]));
 	lua_setfield(L, -2, "damage");
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[2]);
+	const int32 spell_id = Strings::ToInt(sep.arg[2]);
 	if (IsValidSpell(spell_id)) {
 		Lua_Spell l_spell(&spells[spell_id]);
 		luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);
@@ -2890,14 +2954,14 @@ void handle_bot_spell_blocked(
 	lua_pushinteger(L, Strings::ToUnsignedInt(sep.arg[1]));
 	lua_setfield(L, -2, "cast_spell_id");
 
-	const uint32 blocking_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 blocking_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_one(IsValidSpell(blocking_spell_id) ? &spells[blocking_spell_id] : nullptr);
 	luabind::adl::object l_spell_one_o = luabind::adl::object(L, l_spell_one);
 	l_spell_one_o.push(L);
 	lua_setfield(L, -2, "blocking_spell");
 
-	const uint32 cast_spell_id = Strings::ToUnsignedInt(sep.arg[0]);
+	const int32 cast_spell_id = Strings::ToInt(sep.arg[0]);
 
 	Lua_Spell l_spell_two(IsValidSpell(cast_spell_id) ? &spells[cast_spell_id] : nullptr);
 	luabind::adl::object l_spell_two_o = luabind::adl::object(L, l_spell_two);
@@ -2976,7 +3040,7 @@ void handle_zone_death(
 	lua_pushinteger(L, Strings::ToInt(sep.arg[1]));
 	lua_setfield(L, -2, "damage");
 
-	const uint32 spell_id = Strings::ToUnsignedInt(sep.arg[2]);
+	const int32 spell_id = Strings::ToInt(sep.arg[2]);
 	if (IsValidSpell(spell_id)) {
 		Lua_Spell l_spell(&spells[spell_id]);
 		luabind::adl::object l_spell_o = luabind::adl::object(L, l_spell);

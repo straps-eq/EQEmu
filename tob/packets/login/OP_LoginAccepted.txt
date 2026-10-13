@@ -1,0 +1,18 @@
+// 0x19
+
+#include <std/mem.pat>
+
+struct LoginBase
+{
+    u32 sequence_id;
+    u8 compressed;
+    u8 encrypt_type;
+    u32 unknown08;
+};
+
+struct Packet {
+    LoginBase base;
+    u8 payload[std::mem::size() - $];
+};
+
+Packet packet @0x00;

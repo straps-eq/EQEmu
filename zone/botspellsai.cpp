@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "bot.h"
 
 #include "common/data_verification.h"
@@ -1336,7 +1335,7 @@ BotSpell Bot::GetBestBotSpellForGroupHeal(Bot* caster, Mob* tar, uint16 spell_ty
 
 	for (std::list<BotSpell>::iterator bot_spell_list_itr = bot_spell_list.begin(); bot_spell_list_itr != bot_spell_list.end(); ++bot_spell_list_itr) {
 		if (IsRegularGroupHealSpell(bot_spell_list_itr->SpellId)) {
-			uint16 spell_id = bot_spell_list_itr->SpellId;
+			int32 spell_id = bot_spell_list_itr->SpellId;
 
 			if (caster->TargetValidation(tar) && !caster->IsCommandedSpell() && caster->IsValidSpellRange(spell_id, tar)) {
 				target_count = caster->GetNumberNeedingHealedInGroup(tar, spell_type, spell_id, caster->GetAOERange(spell_id));
@@ -1374,7 +1373,7 @@ BotSpell Bot::GetBestBotSpellForGroupHealOverTime(Bot* caster, Mob* tar, uint16 
 
 	for (std::list<BotSpell>::iterator bot_spell_list_itr = bot_spell_list.begin(); bot_spell_list_itr != bot_spell_list.end(); ++bot_spell_list_itr) {
 		if (IsGroupHealOverTimeSpell(bot_spell_list_itr->SpellId)) {
-			uint16 spell_id = bot_spell_list_itr->SpellId;
+			int32 spell_id = bot_spell_list_itr->SpellId;
 
 			if (caster->TargetValidation(tar) && !caster->IsCommandedSpell() && caster->IsValidSpellRange(spell_id, tar)) {
 				target_count = caster->GetNumberNeedingHealedInGroup(tar, spell_type, spell_id, caster->GetAOERange(spell_id));
@@ -1412,7 +1411,7 @@ BotSpell Bot::GetBestBotSpellForGroupCompleteHeal(Bot* caster, Mob* tar, uint16 
 
 	for (std::list<BotSpell>::iterator bot_spell_list_itr = bot_spell_list.begin(); bot_spell_list_itr != bot_spell_list.end(); ++bot_spell_list_itr) {
 		if (IsGroupCompleteHealSpell(bot_spell_list_itr->SpellId)) {
-			uint16 spell_id = bot_spell_list_itr->SpellId;
+			int32 spell_id = bot_spell_list_itr->SpellId;
 
 			if (caster->TargetValidation(tar) && !caster->IsCommandedSpell() && caster->IsValidSpellRange(spell_id, tar)) {
 				target_count = caster->GetNumberNeedingHealedInGroup(tar, spell_type, spell_id, caster->GetAOERange(spell_id));
@@ -1460,7 +1459,7 @@ BotSpell Bot::GetBestBotSpellForMez(Bot* caster, uint16 spell_type) {
 	return result;
 }
 
-Mob* Bot::GetFirstIncomingMobToMez(Bot* caster, uint16 spell_id, uint16 spell_type, bool AE) {
+Mob* Bot::GetFirstIncomingMobToMez(Bot* caster, int32 spell_id, uint16 spell_type, bool AE) {
 	Mob* result = nullptr;
 
 	if (caster && caster->GetOwner()) {
@@ -2185,7 +2184,7 @@ uint8 Bot::GetChanceToCastBySpellType(uint16 spell_type)
 	return RuleI(Bots, PercentChanceToCastOtherType);
 }
 
-bool Bot::AI_AddBotSpells(uint32 bot_spell_id) {
+bool Bot::AI_AddBotSpells(int32 bot_spell_id) {
 	// ok, this function should load the list, and the parent list then shove them into the struct and sort
 	npc_spells_id = bot_spell_id;
 	AIBot_spells.clear();
@@ -2487,7 +2486,7 @@ bool Bot::AI_AddBotSpells(uint32 bot_spell_id) {
 	return true;
 }
 
-bool IsSpellInBotList(DBbotspells_Struct* spell_list, uint16 iSpellID) {
+bool IsSpellInBotList(DBbotspells_Struct* spell_list, int32 iSpellID) {
 	auto it = std::find_if (
 		spell_list->entries.begin(),
 		spell_list->entries.end(),
@@ -2499,7 +2498,7 @@ bool IsSpellInBotList(DBbotspells_Struct* spell_list, uint16 iSpellID) {
 	return it != spell_list->entries.end();
 }
 
-DBbotspells_Struct* ZoneDatabase::GetBotSpells(uint32 bot_spell_id)
+DBbotspells_Struct* ZoneDatabase::GetBotSpells(int32 bot_spell_id)
 {
 	if (!bot_spell_id) {
 		return nullptr;
@@ -2592,7 +2591,7 @@ DBbotspells_Struct* ZoneDatabase::GetBotSpells(uint32 bot_spell_id)
 // adds a spell to the list, taking into account priority and resorting list as needed.
 void Bot::AddSpellToBotList(
 	int16 in_priority,
-	uint16 in_spell_id,
+	int32 in_spell_id,
 	uint32 in_type,
 	int16 in_mana_cost,
 	int32 in_recast_delay,
@@ -2638,7 +2637,7 @@ void Bot::AddSpellToBotList(
 // adds spells to the list ^spells that are returned if ^enforce is enabled
 void Bot::AddSpellToBotEnforceList(
 	int16 iPriority,
-	uint16 iSpellID,
+	int32 iSpellID,
 	uint32 iType,
 	int16 iManaCost,
 	int32 iRecastDelay,
@@ -2704,7 +2703,7 @@ void Bot::AI_Bot_Event_SpellCastFinished(bool iCastSucceeded, uint16 slot) {
 	}
 }
 
-bool Bot::HasBotSpellEntry(uint16 spell_id) {
+bool Bot::HasBotSpellEntry(int32 spell_id) {
 	auto* spell_list = content_db.GetBotSpells(GetBotSpellID());
 
 	if (!spell_list) {
@@ -2721,7 +2720,7 @@ bool Bot::HasBotSpellEntry(uint16 spell_id) {
 	return false;
 }
 
-bool Bot::CanUseBotSpell(uint16 spell_id) {
+bool Bot::CanUseBotSpell(int32 spell_id) {
 	if (AIBot_spells.empty()) {
 		return false;
 	}
@@ -2745,7 +2744,7 @@ bool Bot::CanUseBotSpell(uint16 spell_id) {
 	return false;
 }
 
-bool Bot::IsValidSpellRange(uint16 spell_id, Mob* tar) {
+bool Bot::IsValidSpellRange(int32 spell_id, Mob* tar) {
 	if (!IsValidSpell(spell_id) || !tar) {
 		return false;
 	}

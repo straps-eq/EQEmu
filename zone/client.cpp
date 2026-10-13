@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "client.h"
 
 #include "common/data_bucket.h"
@@ -47,6 +46,7 @@
 #include "common/zone_store.h"
 #include "zone/bot_command.h"
 #include "zone/cheat_manager.h"
+#include "zone/client_version.h"
 #include "zone/command.h"
 #include "zone/dialogue_window.h"
 #include "zone/dynamic_zone.h"
@@ -1038,7 +1038,7 @@ bool Client::Save(uint8 iCommitNow) {
 	}
 
 	if (dead || (!GetMerc() && !GetMercInfo().IsSuspended)) {
-		memset(&m_mercinfo, 0, sizeof(struct MercInfo));
+		memset(&m_mercinfo, 0, sizeof(m_mercinfo));
 	}
 
 	m_pp.lastlogin = time(nullptr);
@@ -1048,7 +1048,7 @@ bool Client::Save(uint8 iCommitNow) {
 		m_petinfo.SpellID = pet->CastToNPC()->GetPetSpellID();
 		m_petinfo.HP = pet->GetHP();
 		m_petinfo.Mana = pet->GetMana();
-		pet->GetPetState(m_petinfo.Buffs, m_petinfo.Items, m_petinfo.Name);
+		pet->SavePetState(m_petinfo.Buffs, m_petinfo.Items, m_petinfo.Name);
 		m_petinfo.petpower = pet->GetPetPower();
 		m_petinfo.size = pet->GetSize();
 		m_petinfo.taunting = pet->CastToNPC()->IsTaunting();
@@ -1206,7 +1206,7 @@ void Client::ChannelMessageReceived(uint8 chan_num, uint8 language, uint8 lang_s
 	LogDebug("Client::ChannelMessageReceived() Channel:[{}] message:[{}]", chan_num, message);
 
 	if (RuleB(Chat, AlwaysCaptureCommandText)) {
-		if (message[0] == COMMAND_CHAR) {
+		if (message[0] == COMMAND_CHAR || message[0] == COMMAND_CHAR_NON_HASH) {
 			if (command_dispatch(this, message, false) == -2) {
 				if (parse->PlayerHasQuestSub(EVENT_COMMAND)) {
 					int i = parse->EventPlayer(EVENT_COMMAND, this, message, 0);
@@ -1539,7 +1539,7 @@ void Client::ChannelMessageReceived(uint8 chan_num, uint8 language, uint8 lang_s
 			}
 		}
 
-		if (message[0] == COMMAND_CHAR) {
+		if (message[0] == COMMAND_CHAR || message[0] == COMMAND_CHAR_NON_HASH) {
 			if (command_dispatch(this, message, false) == -2) {
 				if (parse->PlayerHasQuestSub(EVENT_COMMAND)) {
 					int i = parse->EventPlayer(EVENT_COMMAND, this, message, 0);
@@ -1785,7 +1785,7 @@ void Client::Message(uint32 type, const char* message, ...) {
 	buf.WriteInt32(0);
 	buf.WriteString(buffer);
 
-	auto app = new EQApplicationPacket(OP_SpecialMesg, buf);
+	auto app = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 	FastQueuePacket(&app);
 
@@ -1793,7 +1793,7 @@ void Client::Message(uint32 type, const char* message, ...) {
 }
 
 void Client::FilteredMessage(Mob *sender, uint32 type, eqFilterType filter, const char* message, ...) {
-	if (!FilteredMessageCheck(sender, filter))
+	if (!ShouldGetPacket(sender, filter))
 		return;
 
 	va_list argptr;
@@ -1814,7 +1814,7 @@ void Client::FilteredMessage(Mob *sender, uint32 type, eqFilterType filter, cons
 	buf.WriteInt32(0);
 	buf.WriteString(buffer);
 
-	auto app = new EQApplicationPacket(OP_SpecialMesg, buf);
+	auto app = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 	FastQueuePacket(&app);
 
@@ -2305,6 +2305,7 @@ void Client::SetStats(uint8 type,int16 set_val){
 				m_pp.CHA=set_val;
 		break;
 	}
+	*reinterpret_cast<uint16*>(iss->unknown13) = GetID();
 	QueuePacket(outapp);
 	safe_delete(outapp);
 }
@@ -2395,6 +2396,7 @@ void Client::IncStats(uint8 type, int16 increase_val)
 			}
 			break;
 	}
+	*reinterpret_cast<uint16*>(iss->unknown13) = GetID();
 	QueuePacket(outapp);
 	safe_delete(outapp);
 }
@@ -3344,7 +3346,7 @@ void Client::GMKill() {
 	safe_delete(outapp);
 }
 
-void Client::MemorizeSpell(uint32 slot, uint32 spell_id, uint32 scribing, uint32 reduction){
+void Client::MemorizeSpell(uint32 slot, int32 spell_id, uint32 scribing, uint32 reduction){
 	if (
 		!EQ::ValueWithin(
 			slot,
@@ -3809,18 +3811,12 @@ void Client::MessageString(uint32 type, uint32 string_id, uint32 distance)
 		return;
 	if (GetFilter(FilterSpellCrits) == FilterHide && type == Chat::SpellCrit)
 		return;
-	auto outapp = new EQApplicationPacket(OP_SimpleMessage, 12);
-	SimpleMessage_Struct* sms = (SimpleMessage_Struct*)outapp->pBuffer;
-	sms->color=type;
-	sms->string_id=string_id;
 
-	sms->unknown8=0;
-
-	if(distance>0)
-		entity_list.QueueCloseClients(this,outapp,false,distance);
+	if (distance > 0)
+		ClientPatch::BroadcastMessageStringInRadius(this, false, static_cast<float>(distance))(
+			type, string_id);
 	else
-		QueuePacket(outapp);
-	safe_delete(outapp);
+		ClientPatch::SendMessageString(this, type, string_id);
 }
 
 //
@@ -3830,9 +3826,9 @@ void Client::MessageString(uint32 type, uint32 string_id, uint32 distance)
 // This hack sucks but it's gonna work for now.
 //
 void Client::MessageString(uint32 type, uint32 string_id, const char* message1,
-	const char* message2,const char* message3,const char* message4,
-	const char* message5,const char* message6,const char* message7,
-	const char* message8,const char* message9, uint32 distance)
+	const char* message2, const char* message3, const char* message4,
+	const char* message5, const char* message6, const char* message7,
+	const char* message8, const char* message9, uint32 distance)
 {
 	if (GetFilter(FilterSpellDamage) == FilterHide && type == Chat::NonMelee)
 		return;
@@ -3848,34 +3844,12 @@ void Client::MessageString(uint32 type, uint32 string_id, const char* message1,
 	if (type == Chat::Emote)
 		type = 4;
 
-	if (!message1) {
-		MessageString(type, string_id);	// use the simple message instead
-		return;
-	}
-
-	const char *message_arg[] = {
-		message1, message2, message3, message4, message5,
-		message6, message7, message8, message9
-	};
-
-	SerializeBuffer buf(20);
-	buf.WriteInt32(0); // unknown
-	buf.WriteInt32(string_id);
-	buf.WriteInt32(type);
-	for (auto &m : message_arg) {
-		if (m == nullptr)
-			break;
-		buf.WriteString(m);
-	}
-
-	buf.WriteInt8(0); // prevent oob in packet translation, maybe clean that up sometime
-
-	auto outapp = std::make_unique<EQApplicationPacket>(OP_FormattedMessage, buf);
-
 	if (distance > 0)
-		entity_list.QueueCloseClients(this, outapp.get(), false, distance);
+		ClientPatch::BroadcastMessageStringInRadius(this, false, static_cast<float>(distance))(type, string_id, message1,
+			message2, message3, message4, message5, message6, message7, message8, message9);
 	else
-		QueuePacket(outapp.get());
+		ClientPatch::SendMessageString(this, type, string_id, message1, message2, message3, message4, message5,
+			message6, message7, message8, message9);
 }
 
 void Client::MessageString(const CZClientMessageString_Struct* msg)
@@ -3899,60 +3873,49 @@ void Client::MessageString(const CZClientMessageString_Struct* msg)
 	}
 }
 
-// helper function, returns true if we should see the message
-bool Client::FilteredMessageCheck(Mob *sender, eqFilterType filter)
+// helper function, returns true if the client should get the packet based on the filter and sender
+bool Client::ShouldGetPacket(Mob *sender, eqFilterType filter)
 {
 	eqFilterMode mode = GetFilter(filter);
-	// easy ones first
-	if (mode == FilterShow) {
-		return true;
-	} else if (mode == FilterHide) {
-		return false;
-	}
 
-	if (sender != this && mode == FilterShowSelfOnly) {
+	// easy ones first
+	if (mode == FilterShow)
+		return true;
+
+	if (mode == FilterHide)
 		return false;
-	} else if (sender) {
-		if (mode == FilterShowGroupOnly) {
-			auto g = GetGroup();
-			auto r = GetRaid();
-			if (g) {
-				if (g->IsGroupMember(sender)) {
-					return true;
-				}
-			} else if (r && sender->IsClient()) {
-				auto rgid1 = r->GetGroup(this);
-				auto rgid2 = r->GetGroup(sender->CastToClient());
-				if (rgid1 != RAID_GROUPLESS && rgid1 == rgid2) {
-					return true;
-				}
-			} else {
-				return false;
-			}
+
+	if (sender != this && mode == FilterShowSelfOnly)
+		return false;
+
+	if (sender != nullptr && mode == FilterShowGroupOnly) {
+		if (sender == this)
+			return true;
+
+		Group* g = GetGroup();
+		if (g && g->IsGroupMember(sender))
+			return true;
+
+		Raid* r = GetRaid();
+		if (r && sender->IsClient()) {
+			uint32 rgid1 = r->GetGroup(this);
+			uint32 rgid2 = r->GetGroup(sender->CastToClient());
+			if (rgid1 != RAID_GROUPLESS && rgid1 == rgid2)
+				return true;
+		} else {
+			return false;
 		}
 	}
 
-	// we passed our checks
+	// fallback case (send by default)
 	return true;
 }
 
 void Client::FilteredMessageString(Mob *sender, uint32 type,
 		eqFilterType filter, uint32 string_id)
 {
-	if (!FilteredMessageCheck(sender, filter))
-		return;
-
-	auto outapp = new EQApplicationPacket(OP_SimpleMessage, 12);
-	SimpleMessage_Struct *sms = (SimpleMessage_Struct *)outapp->pBuffer;
-	sms->color = type;
-	sms->string_id = string_id;
-
-	sms->unknown8 = 0;
-
-	QueuePacket(outapp);
-	safe_delete(outapp);
-
-	return;
+	if (ShouldGetPacket(sender, filter))
+		MessageString(type, string_id);
 }
 
 void Client::FilteredMessageString(Mob *sender, uint32 type, eqFilterType filter, uint32 string_id,
@@ -3960,37 +3923,16 @@ void Client::FilteredMessageString(Mob *sender, uint32 type, eqFilterType filter
 		const char *message4, const char *message5, const char *message6,
 		const char *message7, const char *message8, const char *message9)
 {
-	if (!FilteredMessageCheck(sender, filter))
-		return;
-
-	if (type == Chat::Emote)
-		type = 4;
-
 	if (!message1) {
 		FilteredMessageString(sender, type, filter, string_id);	// use the simple message instead
-		return;
+	} else if (ShouldGetPacket(sender, filter)) {
+		if (type == Chat::Emote)
+			type = 4;
+
+		MessageString(
+			type, string_id, message1, message2, message3, message4,
+			message5, message6, message7, message8, message9);
 	}
-
-	const char *message_arg[] = {
-		message1, message2, message3, message4, message5,
-		message6, message7, message8, message9
-	};
-
-	SerializeBuffer buf(20);
-	buf.WriteInt32(0); // unknown
-	buf.WriteInt32(string_id);
-	buf.WriteInt32(type);
-	for (auto &m : message_arg) {
-		if (m == nullptr)
-			break;
-		buf.WriteString(m);
-	}
-
-	buf.WriteInt8(0); // prevent oob in packet translation, maybe clean that up sometime
-
-	auto outapp = std::make_unique<EQApplicationPacket>(OP_FormattedMessage, buf);
-
-	QueuePacket(outapp.get());
 }
 
 void Client::Tell_StringID(uint32 string_id, const char *who, const char *message)
@@ -4453,7 +4395,7 @@ void Client::Sacrifice(Mob *caster)
 	}
 }
 
-void Client::SendOPTranslocateConfirm(Mob *Caster, uint16 SpellID) {
+void Client::SendOPTranslocateConfirm(Mob *Caster, int32 SpellID) {
 
 	if(!Caster || PendingTranslocate)
 		return;
@@ -6385,9 +6327,8 @@ void Client::SuspendMinion(int value)
 
 			if(value >= 1)
 			{
-				CurrentPet->SetPetState(m_suspendedminion.Buffs, m_suspendedminion.Items);
-
-				CurrentPet->SendPetBuffsToClient();
+				CurrentPet->RestorePetState(m_suspendedminion.Buffs, m_suspendedminion.Items);
+				ClientPatch::SendFullBuffRefresh(CurrentPet);
 			}
 			CurrentPet->CalcBonuses();
 
@@ -6422,7 +6363,7 @@ void Client::SuspendMinion(int value)
 	}
 	else
 	{
-		uint16 SpellID = CurrentPet->GetPetSpellID();
+		int32 SpellID = CurrentPet->GetPetSpellID();
 
 		if(SpellID)
 		{
@@ -6453,7 +6394,7 @@ void Client::SuspendMinion(int value)
 				m_suspendedminion.size = CurrentPet->GetSize();
 
 				if(value >= 1)
-					CurrentPet->GetPetState(m_suspendedminion.Buffs, m_suspendedminion.Items, m_suspendedminion.Name);
+					CurrentPet->SavePetState(m_suspendedminion.Buffs, m_suspendedminion.Items, m_suspendedminion.Name);
 				else
 					strn0cpy(m_suspendedminion.Name, CurrentPet->GetName(), 64); // Name stays even at rank 1
 
@@ -7163,7 +7104,7 @@ void Client::ConsentCorpses(std::string consent_name, bool deny)
 	}
 }
 
-void Client::Doppelganger(uint16 spell_id, Mob *target, const char *name_override, int pet_count, int pet_duration)
+void Client::Doppelganger(int32 spell_id, Mob *target, const char *name_override, int pet_count, int pet_duration)
 {
 	if(!target || !IsValidSpell(spell_id) || GetID() == target->GetID())
 		return;
@@ -7941,75 +7882,125 @@ void Client::SendWebLink(const char *website)
 
 void Client::SendMercPersonalInfo()
 {
-	uint32 mercTypeCount = 1;
-	uint32 mercCount = 1; //TODO: Un-hardcode this and support multiple mercs like in later clients than SoD.
-	uint32 i = 0;
 	uint32 altCurrentType = 19; //TODO: Implement alternate currency purchases involving mercs!
 
-	MercTemplate *mercData = &zone->merc_templates[GetMercInfo().MercTemplateID];
-
-	int stancecount = 0;
-	stancecount += zone->merc_stance_list[GetMercInfo().MercTemplateID].size();
-	if(stancecount > MAX_MERC_STANCES || mercCount > MAX_MERC || mercTypeCount > MAX_MERC_GRADES)
-	{
-		Log(Logs::General, Logs::Mercenaries, "SendMercPersonalInfo canceled: (%i) (%i) (%i) for %s", stancecount, mercCount, mercTypeCount, GetName());
-		SendMercMerchantResponsePacket(0);
-		return;
-	}
-
 	if (ClientVersion() >= EQ::versions::ClientVersion::RoF) {
-		auto outapp = new EQApplicationPacket(OP_MercenaryDataUpdate, sizeof(MercenaryDataUpdate_Struct));
-		auto mdus   = (MercenaryDataUpdate_Struct *) outapp->pBuffer;
-
-		mdus->MercStatus                    = 0;
-		mdus->MercCount                     = mercCount;
-		mdus->MercData[i].MercID            = mercData->MercTemplateID;
-		mdus->MercData[i].MercType          = mercData->MercType;
-		mdus->MercData[i].MercSubType       = mercData->MercSubType;
-		mdus->MercData[i].PurchaseCost      = Merc::CalcPurchaseCost(mercData->MercTemplateID, GetLevel(), 0);
-		mdus->MercData[i].UpkeepCost        = Merc::CalcUpkeepCost(mercData->MercTemplateID, GetLevel(), 0);
-		mdus->MercData[i].Status            = 0;
-		mdus->MercData[i].AltCurrencyCost   = Merc::CalcPurchaseCost(
-			mercData->MercTemplateID,
-			GetLevel(),
-			altCurrentType
-		);
-		mdus->MercData[i].AltCurrencyUpkeep = Merc::CalcPurchaseCost(
-			mercData->MercTemplateID,
-			GetLevel(),
-			altCurrentType
-		);
-		mdus->MercData[i].AltCurrencyType   = altCurrentType;
-		mdus->MercData[i].MercUnk01         = 0;
-		mdus->MercData[i].TimeLeft          = GetMercInfo().MercTimerRemaining;    //GetMercTimer().GetRemainingTime();
-		mdus->MercData[i].MerchantSlot      = i + 1;
-		mdus->MercData[i].MercUnk02         = 1;
-		mdus->MercData[i].StanceCount       = zone->merc_stance_list[mercData->MercTemplateID].size();
-		mdus->MercData[i].MercUnk03         = 0;
-		mdus->MercData[i].MercUnk04         = 1;
-
-		strn0cpy(mdus->MercData[i].MercName, GetMercInfo().merc_name, sizeof(mdus->MercData[i].MercName));
-
-		uint32 stanceindex = 0;
-		if (mdus->MercData[i].StanceCount != 0) {
-			auto iter = zone->merc_stance_list[mercData->MercTemplateID].begin();
-			while (iter != zone->merc_stance_list[mercData->MercTemplateID].end()) {
-				mdus->MercData[i].Stances[stanceindex].StanceIndex = stanceindex;
-				mdus->MercData[i].Stances[stanceindex].Stance      = (iter->StanceID);
-				stanceindex++;
-				++iter;
-			}
+		// Count owned mercs across all slots
+		uint32 mercCount = GetNumberOfMercenaries();
+		if (mercCount == 0) {
+			SendClearMercInfo();
+			return;
 		}
 
-		mdus->MercData[i].MercUnk05 = 1;
+		uint32 packetSize = sizeof(MercenaryDataUpdate_Struct);
+		auto outapp = new EQApplicationPacket(OP_MercenaryDataUpdate, packetSize);
+		memset(outapp->pBuffer, 0, packetSize);
+		auto mdus   = (MercenaryDataUpdate_Struct *) outapp->pBuffer;
+
+		mdus->MercStatus = 0;
+		mdus->MercCount  = mercCount;
+
+		// Lambda to populate a single merc entry in the packet
+		int max_slots = std::min(RuleI(Mercs, MaxMercSlots), MAXMERCS);
+		uint32 merc_index = 0;
+
+		auto fillMercEntry = [&](int slot) {
+			auto& info = GetMercInfo(slot);
+			if (info.mercid == 0 || merc_index >= MAX_MERC) {
+				return;
+			}
+
+			auto tmpl_it = zone->merc_templates.find(info.MercTemplateID);
+			if (tmpl_it == zone->merc_templates.end()) {
+				return;
+			}
+
+			MercTemplate *mercData = &tmpl_it->second;
+			uint32 stancecount = 0;
+			auto stance_it = zone->merc_stance_list.find(mercData->MercTemplateID);
+			if (stance_it != zone->merc_stance_list.end()) {
+				stancecount = stance_it->second.size();
+			}
+
+			if (stancecount > MAX_MERC_STANCES) {
+				Log(Logs::General, Logs::Mercenaries, "SendMercPersonalInfo: stance count %u exceeds max for slot %i, skipping", stancecount, slot);
+				return;
+			}
+
+			mdus->MercData[merc_index].MercID            = mercData->MercTemplateID;
+			mdus->MercData[merc_index].MercType          = mercData->MercType;
+			mdus->MercData[merc_index].MercSubType       = mercData->MercSubType;
+			mdus->MercData[merc_index].PurchaseCost      = Merc::CalcPurchaseCost(mercData->MercTemplateID, GetLevel(), 0);
+			mdus->MercData[merc_index].UpkeepCost        = Merc::CalcUpkeepCost(mercData->MercTemplateID, GetLevel(), 0);
+			mdus->MercData[merc_index].Status            = info.IsSuspended ? 0 : 1;
+			mdus->MercData[merc_index].AltCurrencyCost   = Merc::CalcPurchaseCost(mercData->MercTemplateID, GetLevel(), altCurrentType);
+			mdus->MercData[merc_index].AltCurrencyUpkeep = Merc::CalcPurchaseCost(mercData->MercTemplateID, GetLevel(), altCurrentType);
+			mdus->MercData[merc_index].AltCurrencyType   = altCurrentType;
+			mdus->MercData[merc_index].MercUnk01         = 0;
+			mdus->MercData[merc_index].TimeLeft          = info.MercTimerRemaining;
+			mdus->MercData[merc_index].MerchantSlot      = merc_index + 1;
+			mdus->MercData[merc_index].MercUnk02         = (slot == GetMercSlot()) ? 1 : 0;
+			mdus->MercData[merc_index].StanceCount       = stancecount;
+			mdus->MercData[merc_index].MercUnk03         = 0;
+			mdus->MercData[merc_index].MercUnk04         = 1;
+
+			strn0cpy(mdus->MercData[merc_index].MercName, info.merc_name, sizeof(mdus->MercData[merc_index].MercName));
+
+			uint32 stanceindex = 0;
+			if (stance_it != zone->merc_stance_list.end()) {
+				for (const auto& stance : stance_it->second) {
+					mdus->MercData[merc_index].Stances[stanceindex].StanceIndex = stanceindex;
+					mdus->MercData[merc_index].Stances[stanceindex].Stance      = stance.StanceID;
+					stanceindex++;
+				}
+			}
+
+			mdus->MercData[merc_index].MercUnk05 = std::min(RuleI(Mercs, MaxMercSlots), MAXMERCS);
+			merc_index++;
+		};
+
+		// Emit the active merc slot first — the client marks the first entry
+		// in the list with the X (active marker), so order matters.
+		if (GetMercSlot() < max_slots && GetMercInfo().mercid != 0) {
+			fillMercEntry(GetMercSlot());
+		}
+
+		// Then emit remaining owned mercs in slot order
+		for (int slot = 0; slot < max_slots; slot++) {
+			if (slot == GetMercSlot()) {
+				continue; // already emitted
+			}
+			fillMercEntry(slot);
+		}
+
+		// Update count in case we skipped any invalid entries
+		mdus->MercCount = merc_index;
+
 		FastQueuePacket(&outapp);
 		safe_delete(outapp);
 		return;
 	} else {
+		// Pre-RoF path (SoD and earlier) — single merc only
+		if (GetMercInfo().MercTemplateID == 0) {
+			SendClearMercInfo();
+			return;
+		}
+
+		auto tmpl_it = zone->merc_templates.find(GetMercInfo().MercTemplateID);
+		if (tmpl_it == zone->merc_templates.end()) {
+			SendClearMercInfo();
+			return;
+		}
+
+		MercTemplate *mercData = &tmpl_it->second;
+		uint32 mercTypeCount = 1;
+		uint32 mercCount = 1;
+		uint32 i = 0;
+
 		auto outapp = new EQApplicationPacket(OP_MercenaryDataResponse, sizeof(MercenaryMerchantList_Struct));
 		auto mml    = (MercenaryMerchantList_Struct *) outapp->pBuffer;
 
-		mml->MercTypeCount = mercTypeCount; //We should only have one merc entry.
+		mml->MercTypeCount = mercTypeCount;
 		mml->MercGrades[i] = 1;
 
 		mml->MercCount                  = mercCount;
@@ -8084,7 +8075,7 @@ void Client::GarbleMessage(char *message, uint8 variance)
 	int delimiter_count = 0;
 
 	// Don't garble # commands
-	if (message[0] == COMMAND_CHAR || message[0] == BOT_COMMAND_CHAR) {
+	if (message[0] == COMMAND_CHAR || message[0] == COMMAND_CHAR_NON_HASH || message[0] == BOT_COMMAND_CHAR) {
 		return;
 	}
 
@@ -8941,7 +8932,7 @@ int Client::GetQuiverHaste(int delay)
 	return (pi->GetItem()->BagWR * 0.0025f * delay) + 1;
 }
 
-void Client::SendColoredText(uint32 color, std::string message)
+void Client::SendColoredText(uint32 color, const std::string& message)
 {
 	// arbitrary size limit
 	if (message.size() > 512) // live does send this with empty strings sometimes ...
@@ -9157,6 +9148,44 @@ void Client::SendHPUpdateMarquee(){
 
 	const auto health_update_notification = fmt::format("Health: {}%%", health_percentage);
 	SendMarqueeMessage(Chat::Yellow, 510, 0, 3000, 3000, health_update_notification);
+}
+
+void Client::SendMembership() {
+	if (m_ClientVersion >= EQ::versions::ClientVersion::TOB) {
+		auto outapp = new EQApplicationPacket(OP_SendMembership, sizeof(Membership_Struct));
+		Membership_Struct* mc = (Membership_Struct*)outapp->pBuffer;
+
+		mc->membership = 2;				//Hardcode to gold for now. We don't use anything else.
+		mc->races = 0x1ffff;			// Available Races (4110 for silver)
+		mc->classes = 0x1ffff;			// Available Classes (4614 for silver) - Was 0x101ffff
+		mc->entrysize = 21;				// Number of membership setting entries below
+		mc->entries[0] = 0xffffffff;	// Max AA Restriction
+		mc->entries[1] = 0xffffffff;	// Max Level Restriction
+		mc->entries[2] = 0xffffffff;	// Max Char Slots per Account (not used by client?)
+		mc->entries[3] = 0xffffffff;	// 1 for Silver
+		mc->entries[4] = 0xffffffff;	// Main Inventory Size (0xffffffff on Live for Gold, but limiting to 8 until 10 is supported)
+		mc->entries[5] = 0xffffffff;	// Max Platinum per level
+		mc->entries[6] = 1;				// 0 for Silver
+		mc->entries[7] = 1;				// 0 for Silver
+		mc->entries[8] = 1;				// 1 for Silver
+		mc->entries[9] = 0xffffffff;	// Unknown - Maybe Loyalty Points every 12 hours? 60 per week for Silver
+		mc->entries[10] = 1;			// 1 for Silver
+		mc->entries[11] = 0xffffffff;	// Shared Bank Slots
+		mc->entries[12] = 0xffffffff;	// Unknown - Maybe Max Active Tasks?
+		mc->entries[13] = 1;			// 1 for Silver
+		mc->entries[14] = 1;			// 0 for Silver
+		mc->entries[15] = 1;			// 0 for Silver
+		mc->entries[16] = 1;			// 1 for Silver
+		mc->entries[17] = 1;			// 0 for Silver
+		mc->entries[18] = 1;			// 0 for Silver
+		mc->entries[19] = 0xffffffff;	// 0 for Silver
+		mc->entries[20] = 0xffffffff;	// 0 for Silver
+		mc->exit_url_length = 0;
+		//mc->exit_url = 0; // Used on Live: "http://www.everquest.com/free-to-play/exit-silver"
+
+		QueuePacket(outapp);
+		safe_delete(outapp);
+	}
 }
 
 uint32 Client::GetMoney(uint8 type, uint8 subtype) {
@@ -10686,7 +10715,7 @@ void Client::Fling(float value, float target_x, float target_y, float target_z, 
 
 std::vector<int> Client::GetLearnableDisciplines(uint8 min_level, uint8 max_level) {
 	std::vector<int> learnable_disciplines;
-	for (uint16 spell_id = 0; spell_id < SPDAT_RECORDS; ++spell_id) {
+	for (int32 spell_id = 0; spell_id < SPDAT_RECORDS; ++spell_id) {
 		bool learnable = true;
 		if (!IsValidSpell(spell_id)) {
 			continue;
@@ -10757,7 +10786,7 @@ std::vector<int> Client::GetScribeableSpells(uint8 min_level, uint8 max_level) {
 	std::vector<int> scribeable_spells;
 	std::unordered_map<uint32, std::vector<uint16>> spell_group_cache = LoadSpellGroupCache(min_level, max_level);
 
-	for (uint16 spell_id = 0; spell_id < SPDAT_RECORDS; ++spell_id) {
+	for (int32 spell_id = 0; spell_id < SPDAT_RECORDS; ++spell_id) {
 		bool scribeable = true;
 		if (!IsValidSpell(spell_id)) {
 			continue;

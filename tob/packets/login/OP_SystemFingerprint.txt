@@ -1,0 +1,10 @@
+// 0x16
+
+struct Packet {
+    u32 sequence_id;
+    u32 unknown04;
+    u16 unknown08;
+    char fingerprint_data[];
+};
+
+Packet packet @0x00;

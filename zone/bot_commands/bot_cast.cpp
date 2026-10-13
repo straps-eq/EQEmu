@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "zone/bot_command.h"
 
 void bot_command_cast(Client* c, const Seperator* sep)
@@ -160,7 +177,7 @@ void bot_command_cast(Client* c, const Seperator* sep)
 	bool aa_type = false;
 	int aa_id = 0;
 	bool by_spell_id = false;
-	uint16 chosen_spell_id = UINT16_MAX;
+	int32 chosen_spell_id = -1;
 
 	if (!arg1.compare("aa") || !arg1.compare("harmtouch") || !arg1.compare("layonhands")) {
 		if (!RuleB(Bots, AllowCastAAs)) {
@@ -519,7 +536,7 @@ void bot_command_cast(Client* c, const Seperator* sep)
 
 			AA::Rank* temp_rank = nullptr;
 			AA::Rank*& rank = temp_rank;
-			uint16 spell_id = bot_iter->GetSpellByAA(aa_id, rank);
+			int32 spell_id = bot_iter->GetSpellByAA(aa_id, rank);
 
 			if (!IsValidSpell(spell_id)) {
 				continue;

@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -115,8 +132,8 @@ public:
 		uint8_t     lfg;
 		std::string mailkey;
 		uint8_t     xtargets;
-		uint8_t     ingame;
 		uint32_t    first_login;
+		uint8_t     ingame;
 		uint32_t    e_aa_effects;
 		uint32_t    e_percent_to_aa;
 		uint32_t    e_expended_aa_spent;
@@ -231,8 +248,8 @@ public:
 			"lfg",
 			"mailkey",
 			"xtargets",
-			"ingame",
 			"first_login",
+			"ingame",
 			"e_aa_effects",
 			"e_percent_to_aa",
 			"e_expended_aa_spent",
@@ -343,8 +360,8 @@ public:
 			"lfg",
 			"mailkey",
 			"xtargets",
-			"ingame",
 			"first_login",
+			"ingame",
 			"e_aa_effects",
 			"e_percent_to_aa",
 			"e_expended_aa_spent",
@@ -489,8 +506,8 @@ public:
 		e.lfg                     = 0;
 		e.mailkey                 = "";
 		e.xtargets                = 5;
-		e.ingame                  = 0;
 		e.first_login             = 0;
+		e.ingame                  = 0;
 		e.e_aa_effects            = 0;
 		e.e_percent_to_aa         = 0;
 		e.e_expended_aa_spent     = 0;
@@ -631,8 +648,8 @@ public:
 			e.lfg                     = row[93] ? static_cast<uint8_t>(strtoul(row[93], nullptr, 10)) : 0;
 			e.mailkey                 = row[94] ? row[94] : "";
 			e.xtargets                = row[95] ? static_cast<uint8_t>(strtoul(row[95], nullptr, 10)) : 5;
-			e.ingame                  = row[96] ? static_cast<uint8_t>(strtoul(row[96], nullptr, 10)) : 0;
-			e.first_login             = row[97] ? static_cast<uint32_t>(strtoul(row[97], nullptr, 10)) : 0;
+			e.first_login             = row[96] ? static_cast<uint32_t>(strtoul(row[96], nullptr, 10)) : 0;
+			e.ingame                  = row[97] ? static_cast<uint8_t>(strtoul(row[97], nullptr, 10)) : 0;
 			e.e_aa_effects            = row[98] ? static_cast<uint32_t>(strtoul(row[98], nullptr, 10)) : 0;
 			e.e_percent_to_aa         = row[99] ? static_cast<uint32_t>(strtoul(row[99], nullptr, 10)) : 0;
 			e.e_expended_aa_spent     = row[100] ? static_cast<uint32_t>(strtoul(row[100], nullptr, 10)) : 0;
@@ -769,8 +786,8 @@ public:
 		v.push_back(columns[93] + " = " + std::to_string(e.lfg));
 		v.push_back(columns[94] + " = '" + Strings::Escape(e.mailkey) + "'");
 		v.push_back(columns[95] + " = " + std::to_string(e.xtargets));
-		v.push_back(columns[96] + " = " + std::to_string(e.ingame));
-		v.push_back(columns[97] + " = " + std::to_string(e.first_login));
+		v.push_back(columns[96] + " = " + std::to_string(e.first_login));
+		v.push_back(columns[97] + " = " + std::to_string(e.ingame));
 		v.push_back(columns[98] + " = " + std::to_string(e.e_aa_effects));
 		v.push_back(columns[99] + " = " + std::to_string(e.e_percent_to_aa));
 		v.push_back(columns[100] + " = " + std::to_string(e.e_expended_aa_spent));
@@ -896,8 +913,8 @@ public:
 		v.push_back(std::to_string(e.lfg));
 		v.push_back("'" + Strings::Escape(e.mailkey) + "'");
 		v.push_back(std::to_string(e.xtargets));
-		v.push_back(std::to_string(e.ingame));
 		v.push_back(std::to_string(e.first_login));
+		v.push_back(std::to_string(e.ingame));
 		v.push_back(std::to_string(e.e_aa_effects));
 		v.push_back(std::to_string(e.e_percent_to_aa));
 		v.push_back(std::to_string(e.e_expended_aa_spent));
@@ -1031,8 +1048,8 @@ public:
 			v.push_back(std::to_string(e.lfg));
 			v.push_back("'" + Strings::Escape(e.mailkey) + "'");
 			v.push_back(std::to_string(e.xtargets));
-			v.push_back(std::to_string(e.ingame));
 			v.push_back(std::to_string(e.first_login));
+			v.push_back(std::to_string(e.ingame));
 			v.push_back(std::to_string(e.e_aa_effects));
 			v.push_back(std::to_string(e.e_percent_to_aa));
 			v.push_back(std::to_string(e.e_expended_aa_spent));
@@ -1170,8 +1187,8 @@ public:
 			e.lfg                     = row[93] ? static_cast<uint8_t>(strtoul(row[93], nullptr, 10)) : 0;
 			e.mailkey                 = row[94] ? row[94] : "";
 			e.xtargets                = row[95] ? static_cast<uint8_t>(strtoul(row[95], nullptr, 10)) : 5;
-			e.ingame                  = row[96] ? static_cast<uint8_t>(strtoul(row[96], nullptr, 10)) : 0;
-			e.first_login             = row[97] ? static_cast<uint32_t>(strtoul(row[97], nullptr, 10)) : 0;
+			e.first_login             = row[96] ? static_cast<uint32_t>(strtoul(row[96], nullptr, 10)) : 0;
+			e.ingame                  = row[97] ? static_cast<uint8_t>(strtoul(row[97], nullptr, 10)) : 0;
 			e.e_aa_effects            = row[98] ? static_cast<uint32_t>(strtoul(row[98], nullptr, 10)) : 0;
 			e.e_percent_to_aa         = row[99] ? static_cast<uint32_t>(strtoul(row[99], nullptr, 10)) : 0;
 			e.e_expended_aa_spent     = row[100] ? static_cast<uint32_t>(strtoul(row[100], nullptr, 10)) : 0;
@@ -1300,8 +1317,8 @@ public:
 			e.lfg                     = row[93] ? static_cast<uint8_t>(strtoul(row[93], nullptr, 10)) : 0;
 			e.mailkey                 = row[94] ? row[94] : "";
 			e.xtargets                = row[95] ? static_cast<uint8_t>(strtoul(row[95], nullptr, 10)) : 5;
-			e.ingame                  = row[96] ? static_cast<uint8_t>(strtoul(row[96], nullptr, 10)) : 0;
-			e.first_login             = row[97] ? static_cast<uint32_t>(strtoul(row[97], nullptr, 10)) : 0;
+			e.first_login             = row[96] ? static_cast<uint32_t>(strtoul(row[96], nullptr, 10)) : 0;
+			e.ingame                  = row[97] ? static_cast<uint8_t>(strtoul(row[97], nullptr, 10)) : 0;
 			e.e_aa_effects            = row[98] ? static_cast<uint32_t>(strtoul(row[98], nullptr, 10)) : 0;
 			e.e_percent_to_aa         = row[99] ? static_cast<uint32_t>(strtoul(row[99], nullptr, 10)) : 0;
 			e.e_expended_aa_spent     = row[100] ? static_cast<uint32_t>(strtoul(row[100], nullptr, 10)) : 0;
@@ -1480,8 +1497,8 @@ public:
 		v.push_back(std::to_string(e.lfg));
 		v.push_back("'" + Strings::Escape(e.mailkey) + "'");
 		v.push_back(std::to_string(e.xtargets));
-		v.push_back(std::to_string(e.ingame));
 		v.push_back(std::to_string(e.first_login));
+		v.push_back(std::to_string(e.ingame));
 		v.push_back(std::to_string(e.e_aa_effects));
 		v.push_back(std::to_string(e.e_percent_to_aa));
 		v.push_back(std::to_string(e.e_expended_aa_spent));
@@ -1608,8 +1625,8 @@ public:
 			v.push_back(std::to_string(e.lfg));
 			v.push_back("'" + Strings::Escape(e.mailkey) + "'");
 			v.push_back(std::to_string(e.xtargets));
-			v.push_back(std::to_string(e.ingame));
 			v.push_back(std::to_string(e.first_login));
+			v.push_back(std::to_string(e.ingame));
 			v.push_back(std::to_string(e.e_aa_effects));
 			v.push_back(std::to_string(e.e_percent_to_aa));
 			v.push_back(std::to_string(e.e_expended_aa_spent));

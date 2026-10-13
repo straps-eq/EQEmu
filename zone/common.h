@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #pragma once
 
@@ -206,11 +223,12 @@ namespace Journal {
 
 //this is our internal representation of the BUFF struct, can put whatever we want in it
 struct Buffs_Struct {
-	uint16	spellid;
+	int32	spellid;
 	uint8	casterlevel;
-	uint16	casterid;		// Maybe change this to a pointer sometime, but gotta make sure it's 0'd when it no longer points to anything
+	uint32	casterid;		// Maybe change this to a pointer sometime, but gotta make sure it's 0'd when it no longer points to anything
 	char	caster_name[64];
 	int32	ticsremaining;
+	int32	initialduration;
 	uint32	counters;
 	uint32	hit_number; //the number of physical hits this buff can take before it fades away, lots of druid armor spells take advantage of this mixed with powerful effects
 	uint32	melee_rune;
@@ -223,9 +241,9 @@ struct Buffs_Struct {
 	int16	RootBreakChance; //Not saved to dbase
 	uint32	instrument_mod;
 	int32	virus_spread_time; //time till next attempted viral spread
-	bool	persistant_buff;
+	bool	persistent_buff;
 	bool	client; //True if the caster is a client
-	bool	UpdateClient;
+	bool	UpdateClient; // This is for legacy client support only. Newer clients take refresh packets for the entire buff list
 
 	// cereal
 	template<class Archive>
@@ -243,6 +261,7 @@ struct Buffs_Struct {
 			CEREAL_NVP(casterid),
 			CEREAL_NVP(caster_name_str),
 			CEREAL_NVP(ticsremaining),
+			CEREAL_NVP(initialduration),
 			CEREAL_NVP(counters),
 			CEREAL_NVP(hit_number),
 			CEREAL_NVP(melee_rune),
@@ -255,7 +274,7 @@ struct Buffs_Struct {
 			CEREAL_NVP(RootBreakChance),
 			CEREAL_NVP(instrument_mod),
 			CEREAL_NVP(virus_spread_time),
-			CEREAL_NVP(persistant_buff),
+			CEREAL_NVP(persistent_buff),
 			CEREAL_NVP(client),
 			CEREAL_NVP(UpdateClient)
 		);
@@ -317,13 +336,13 @@ struct StatBonuses {
 	int32	Corrup;
 	int32	CorrupCapMod;
 	int32	HeroicCorrup;
-	uint16	DamageShieldSpellID;
+	int32   DamageShieldSpellID;
 	int		DamageShield;						// this is damage done to mobs that attack this
 	DmgShieldType	DamageShieldType;
 	int		SpellDamageShield;
 	int		SpellShield;
 	int		ReverseDamageShield;				// this is damage done to the mob when it attacks
-	uint16	ReverseDamageShieldSpellID;
+	int32   ReverseDamageShieldSpellID;
 	DmgShieldType	ReverseDamageShieldType;
 	int		movementspeed;
 	int32	haste;
@@ -624,7 +643,7 @@ namespace SBIndex {
 	constexpr uint16 POSITION_FRONT							= 1; // SPA 503-506
 	constexpr uint16 PET_RAMPAGE_CHANCE                     = 0; // SPA 464,465
 	constexpr uint16 PET_RAMPAGE_DMG_MOD                    = 1; // SPA 465,465
-	constexpr uint16 SKILLATK_PROC_SPELL_ID                 = 0; // SPA 288
+	constexpr int32  SKILLATK_PROC_SPELL_ID                 = 0; // SPA 288
 	constexpr uint16 SKILLATK_PROC_CHANCE                   = 1; // SPA 288
 	constexpr uint16 SKILLATK_PROC_SKILL                    = 2; // SPA 288
 	constexpr uint16 SLAYUNDEAD_DMG_MOD                     = 0; // SPA 219
@@ -643,7 +662,7 @@ namespace SBIndex {
 	constexpr uint16 REFLECT_RESISTANCE_MOD                 = 1; // SPA 158
 	constexpr uint16 REFLECT_DMG_EFFECTIVENESS              = 2; // SPA 158
 	constexpr uint16 COMBAT_PROC_ORIGIN_ID                  = 0; // SPA
-	constexpr uint16 COMBAT_PROC_SPELL_ID                   = 1; // SPA
+	constexpr int32  COMBAT_PROC_SPELL_ID                   = 1; // SPA
 	constexpr uint16 COMBAT_PROC_RATE_MOD                   = 2; // SPA
 	constexpr uint16 COMBAT_PROC_REUSE_TIMER                = 3; // SPA
 	constexpr uint16 SHIELD_TARGET_MITIGATION_PERCENT       = 0; // SPA 463
@@ -905,7 +924,7 @@ struct DataBucketCache
 
 enum eStandingPetOrder { SPO_Follow, SPO_Sit, SPO_Guard, SPO_FeignDeath };
 
-typedef enum {
+enum PetTypeOld {
 	petFamiliar,		//only listens to /pet get lost
 	petAnimation,		//does not listen to any commands
 	petOther,
@@ -913,4 +932,4 @@ typedef enum {
 	petNPCFollow,
 	petTargetLock,			//remain active as long something is on the hatelist. Don't listen to any commands
 	petNone = 0xFF // not a pet
-} PetTypeOld;
+};

@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_mod.h"
@@ -793,7 +810,7 @@ void LuaMod::GetExperienceForKill(Client *self, Mob *against, uint64 &returnValu
 	}
 }
 
-void LuaMod::IsImmuneToSpell(Mob *self, Mob* caster, uint16 spell_id, bool &return_value, bool &ignore_default)
+void LuaMod::IsImmuneToSpell(Mob *self, Mob* caster, int32 spell_id, bool &return_value, bool &ignore_default)
 {
 	int start = lua_gettop(L);
 
@@ -845,7 +862,7 @@ void LuaMod::IsImmuneToSpell(Mob *self, Mob* caster, uint16 spell_id, bool &retu
 	}
 }
 
-void LuaMod::CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, uint16 spell_id, int ticsremaining, int64 &returnValue, bool &ignoreDefault)
+void LuaMod::CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, int32 spell_id, int ticsremaining, int64 &returnValue, bool &ignoreDefault)
 {
 	int start = lua_gettop(L);
 	int64 retval = 0;
@@ -972,7 +989,7 @@ void LuaMod::RegisterBug(Client *self, BaseBugReportsRepository::BugReports bug,
 }
 
 
-void LuaMod::CommonDamage(Mob *self, Mob* attacker, int64 value, uint16 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, int64 &return_value, bool &ignore_default)
+void LuaMod::CommonDamage(Mob *self, Mob* attacker, int64 value, int32 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, int64 &return_value, bool &ignore_default)
 {
 	int start = lua_gettop(L);
 
@@ -1031,7 +1048,7 @@ void LuaMod::CommonDamage(Mob *self, Mob* attacker, int64 value, uint16 spell_id
 }
 
 
-void LuaMod::HealDamage(Mob *self, Mob* caster, uint64 value, uint16 spell_id, uint64 &return_value, bool &ignore_default)
+void LuaMod::HealDamage(Mob *self, Mob* caster, uint64 value, int32 spell_id, uint64 &return_value, bool &ignore_default)
 {
 	int start = lua_gettop(L);
 

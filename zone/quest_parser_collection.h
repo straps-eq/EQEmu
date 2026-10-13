@@ -1,21 +1,20 @@
-/*  EQEMu:  Everquest Server Emulator
-	Copyright (C) 2001-2006  EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 
 #include "common/types.h"
@@ -64,7 +63,7 @@ public:
 
 	bool HasQuestSub(uint32 npc_id, QuestEventID event_id);
 	bool PlayerHasQuestSub(QuestEventID event_id);
-	bool SpellHasQuestSub(uint32 spell_id, QuestEventID event_id);
+	bool SpellHasQuestSub(int32 spell_id, QuestEventID event_id);
 	bool ItemHasQuestSub(EQ::ItemInstance* inst, QuestEventID event_id);
 	bool BotHasQuestSub(QuestEventID event_id);
 	bool MercHasQuestSub(QuestEventID event_id);
@@ -101,7 +100,7 @@ public:
 		QuestEventID event_id,
 		Mob* mob,
 		Client* client,
-		uint32 spell_id,
+		int32 spell_id,
 		std::string data,
 		uint32 extra_data,
 		std::vector<std::any>* extra_pointers = nullptr
@@ -207,7 +206,7 @@ private:
 	bool PlayerHasQuestSubLocal(QuestEventID event_id);
 	bool PlayerHasQuestSubGlobal(QuestEventID event_id);
 	bool PlayerHasEncounterSub(QuestEventID event_id);
-	bool SpellHasEncounterSub(uint32 spell_id, QuestEventID event_id);
+	bool SpellHasEncounterSub(int32 spell_id, QuestEventID event_id);
 	bool ItemHasEncounterSub(EQ::ItemInstance* inst, QuestEventID event_id);
 	bool HasEncounterSub(QuestEventID event_id, const std::string& package_name);
 	bool BotHasQuestSubLocal(QuestEventID event_id);
@@ -307,7 +306,7 @@ private:
 	QuestInterface* GetQIByGlobalNPCQuest(std::string& filename);
 	QuestInterface* GetQIByPlayerQuest(std::string& filename);
 	QuestInterface* GetQIByGlobalPlayerQuest(std::string& filename);
-	QuestInterface* GetQIBySpellQuest(uint32 spell_id, std::string& filename);
+	QuestInterface* GetQIBySpellQuest(int32 spell_id, std::string& filename);
 	QuestInterface* GetQIByItemQuest(std::string item_script, std::string& filename);
 	QuestInterface* GetQIByEncounterQuest(std::string encounter_name, std::string& filename);
 	QuestInterface* GetQIByBotQuest(std::string& filename);
@@ -348,7 +347,7 @@ private:
 		QuestEventID event_id,
 		Mob* mob,
 		Client* client,
-		uint32 spell_id,
+		int32 spell_id,
 		std::string data,
 		uint32 extra_data,
 		std::vector<std::any>* extra_pointers

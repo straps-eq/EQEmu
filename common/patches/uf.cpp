@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "uf.h"
 #include "uf_structs.h"
 
@@ -35,6 +33,7 @@
 #include "common/raid.h"
 #include "common/rulesys.h"
 #include "common/strings.h"
+#include "zone/mob.h"
 
 #include "cereal/types/vector.hpp"
 #include <iostream>
@@ -66,7 +65,6 @@ namespace UF
 	static inline spells::CastingSlot ServerToUFCastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot UFToServerCastingSlot(spells::CastingSlot slot);
 
-	static inline int ServerToUFBuffSlot(int index);
 	static inline int UFToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -436,7 +434,7 @@ namespace UF
 		}
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -444,70 +442,15 @@ namespace UF
 		OUT(entityid);
 		OUT(buff.effect_type);
 		OUT(buff.level);
-		// just so we're 100% sure we get a 1.0f ...
-		eq->buff.bard_modifier = emu->buff.bard_modifier == 10 ? 1.0f : emu->buff.bard_modifier / 10.0f;
+		OUT(buff.bard_modifier);
 		OUT(buff.spellid);
 		OUT(buff.duration);
 		OUT(buff.num_hits);
 		// TODO: implement slot_data stuff
-		eq->slotid = ServerToUFBuffSlot(emu->slotid);
+		OUT(slotid);
 		OUT(bufffade);	// Live (October 2011) sends a 2 rather than 0 when a buff is created, but it doesn't seem to matter.
 
 		FINISH_ENCODE();
-	}
-
-	ENCODE(OP_BuffCreate)
-	{
-		SETUP_VAR_ENCODE(BuffIcon_Struct);
-
-		uint32 sz = 12 + (17 * emu->count) + emu->name_lengths; // 17 includes nullterm
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		__packet->WriteUInt32(emu->entity_id);
-		__packet->WriteUInt32(emu->tic_timer);
-		__packet->WriteUInt8(emu->all_buffs); // 1 = all buffs, 0 = 1 buff
-		__packet->WriteUInt16(emu->count);
-
-		for (int i = 0; i < emu->count; ++i)
-		{
-			__packet->WriteUInt32(emu->type == 0 ? ServerToUFBuffSlot(emu->entries[i].buff_slot) : emu->entries[i].buff_slot);
-			__packet->WriteUInt32(emu->entries[i].spell_id);
-			__packet->WriteUInt32(emu->entries[i].tics_remaining);
-			__packet->WriteUInt32(emu->entries[i].num_hits);
-			__packet->WriteString(emu->entries[i].caster);
-		}
-		__packet->WriteUInt8(emu->type);
-
-		FINISH_ENCODE();
-		/*
-		uint32 write_var32 = 60;
-		uint8 write_var8 = 1;
-		ss.write((const char*)&emu->entity_id, sizeof(uint32));
-		ss.write((const char*)&write_var32, sizeof(uint32));
-		ss.write((const char*)&write_var8, sizeof(uint8));
-		ss.write((const char*)&emu->count, sizeof(uint16));
-		write_var32 = 0;
-		write_var8 = 0;
-		for(uint16 i = 0; i < emu->count; ++i)
-		{
-		if(emu->entries[i].buff_slot >= 25 && emu->entries[i].buff_slot < 37)
-		{
-		emu->entries[i].buff_slot += 5;
-		}
-		else if(emu->entries[i].buff_slot >= 37)
-		{
-		emu->entries[i].buff_slot += 14;
-		}
-		ss.write((const char*)&emu->entries[i].buff_slot, sizeof(uint32));
-		ss.write((const char*)&emu->entries[i].spell_id, sizeof(uint32));
-		ss.write((const char*)&emu->entries[i].tics_remaining, sizeof(uint32));
-		ss.write((const char*)&write_var32, sizeof(uint32));
-		ss.write((const char*)&write_var8, sizeof(uint8));
-		}
-		ss.write((const char*)&write_var8, sizeof(uint8));
-		*/
 	}
 
 	ENCODE(OP_CancelTrade)
@@ -1802,44 +1745,6 @@ namespace UF
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_PetBuffWindow)
-	{
-		EQApplicationPacket *in = *p;
-		*p = nullptr;
-
-		unsigned char *__emu_buffer = in->pBuffer;
-
-		PetBuff_Struct *emu = (PetBuff_Struct *)__emu_buffer;
-
-		int PacketSize = 12 + (emu->buffcount * 17);
-
-		in->size = PacketSize;
-		in->pBuffer = new unsigned char[in->size];
-
-		char *Buffer = (char *)in->pBuffer;
-
-		VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->petid);
-		VARSTRUCT_ENCODE_TYPE(uint32, Buffer, 0);
-		VARSTRUCT_ENCODE_TYPE(uint8, Buffer, 1);
-		VARSTRUCT_ENCODE_TYPE(uint16, Buffer, emu->buffcount);
-
-		for (unsigned int i = 0; i < PET_BUFF_COUNT; ++i)
-		{
-			if (emu->spellid[i])
-			{
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, i);
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->spellid[i]);
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->ticsremaining[i]);
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, 0); // numhits
-				VARSTRUCT_ENCODE_TYPE(uint8, Buffer, 0);	// This is a string. Name of the caster of the buff.
-			}
-		}
-		VARSTRUCT_ENCODE_TYPE(uint8, Buffer, emu->buffcount); /// I think this is actually some sort of type
-
-		delete[] __emu_buffer;
-		dest->FastQueuePacket(&in, ack_req);
-	}
-
 	ENCODE(OP_PlayerProfile)
 	{
 		SETUP_DIRECT_ENCODE(PlayerProfile_Struct, structs::PlayerProfile_Struct);
@@ -2713,7 +2618,7 @@ namespace UF
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -2730,8 +2635,6 @@ namespace UF
 
 		FINISH_ENCODE();
 	}
-
-	ENCODE(OP_TargetBuffs) { ENCODE_FORWARD(OP_BuffCreate); }
 
 	ENCODE(OP_TaskDescription)
 	{
@@ -3640,7 +3543,7 @@ namespace UF
 		FINISH_DIRECT_DECODE();
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -5210,19 +5113,6 @@ namespace UF
 		}
 	}
 
-	static inline int ServerToUFBuffSlot(int index)
-	{
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-			       spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
-	}
-
 	static inline int UFToServerBuffSlot(int index)
 	{
 		// we're a disc
@@ -5235,4 +5125,48 @@ namespace UF
 		// we're a normal buff
 		return index; // as long as we guard against bad slots server side, we should be fine
 	}
+
+	std::unique_ptr<EQApplicationPacket> BuffComponent::RefreshBuffs(EmuOpcode opcode, Mob* mob,
+		bool remove,
+		bool buff_timers_suspended, const std::vector<uint32_t>& slots) const
+{
+	// UF introduced the self refresh buff packet
+	Buffs_Struct* buffs = mob->GetBuffs();
+
+	size_t buffer_size = 12; // 12 bytes outside the list
+	std::vector<uint32_t> send_slots;
+	if (slots.empty()) {
+		for (uint32_t slot = 0; slot < mob->GetMaxTotalSlots(); ++slot)
+			if (buffs[slot].spellid > 1) {
+				buffer_size += 17 + strlen(buffs[slot].caster_name); // 17 includes the null terminator
+				send_slots.push_back(slot);
+			}
+	} else {
+		for (uint32_t slot : slots)
+			if (slot < mob->GetMaxTotalSlots() && buffs[slot].spellid > 1) {
+				buffer_size += 17 + strlen(buffs[slot].caster_name);
+				send_slots.push_back(slot);
+			}
+	}
+
+	SerializeBuffer buffer(buffer_size);
+
+	buffer.WriteUInt32(mob->GetID());
+	buffer.WriteUInt32(mob->GetRemainingTicTime());
+	buffer.WriteUInt8(slots.empty() ? 1 : 0);
+	buffer.WriteUInt16(send_slots.size());
+
+	for (uint32_t slot : send_slots) {
+		buffer.WriteUInt32(ServerToPatchBuffSlot(slot));
+		buffer.WriteInt32(remove ? -1 : buffs[slot].spellid);
+		buffer.WriteInt32(buffs[slot].ticsremaining);
+		buffer.WriteUInt32(buffs[slot].hit_number);
+		buffer.WriteString(buffs[slot].caster_name);
+	}
+
+	buffer.WriteUInt8(opcode == OP_RefreshPetBuffs ? 2 : 0);
+
+	return std::make_unique<EQApplicationPacket>(opcode, std::move(buffer));
+}
+
 } /*UF*/

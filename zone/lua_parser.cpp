@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_parser.h"
@@ -143,8 +160,10 @@ const char *LuaEvents[_LargestEventID] = {
 	"event_language_skill_up",
 	"event_alt_currency_merchant_buy",
 	"event_alt_currency_merchant_sell",
+	"event_merchant_open",
 	"event_merchant_buy",
 	"event_merchant_sell",
+	"event_merchant_presell",
 	"event_inspect",
 	"event_task_before_update",
 	"event_aa_buy",
@@ -318,8 +337,10 @@ LuaParser::LuaParser() {
 	PlayerArgumentDispatch[EVENT_LANGUAGE_SKILL_UP]          = handle_player_language_skill_up;
 	PlayerArgumentDispatch[EVENT_ALT_CURRENCY_MERCHANT_BUY]  = handle_player_alt_currency_merchant;
 	PlayerArgumentDispatch[EVENT_ALT_CURRENCY_MERCHANT_SELL] = handle_player_alt_currency_merchant;
+	PlayerArgumentDispatch[EVENT_MERCHANT_OPEN]              = handle_player_merchant_open;
 	PlayerArgumentDispatch[EVENT_MERCHANT_BUY]               = handle_player_merchant;
 	PlayerArgumentDispatch[EVENT_MERCHANT_SELL]              = handle_player_merchant;
+	PlayerArgumentDispatch[EVENT_MERCHANT_PRESELL]           = handle_player_merchant_presell;
 	PlayerArgumentDispatch[EVENT_INSPECT]                    = handle_player_inspect;
 	PlayerArgumentDispatch[EVENT_AA_BUY]                     = handle_player_aa_buy;
 	PlayerArgumentDispatch[EVENT_AA_GAIN]                    = handle_player_aa_gain;
@@ -740,7 +761,7 @@ int LuaParser::_EventItem(std::string package_name, QuestEventID evt, Client *cl
 	return 0;
 }
 
-int LuaParser::EventSpell(QuestEventID evt, Mob* mob, Client *client, uint32 spell_id, std::string data, uint32 extra_data,
+int LuaParser::EventSpell(QuestEventID evt, Mob* mob, Client *client, int32 spell_id, std::string data, uint32 extra_data,
 						  std::vector<std::any> *extra_pointers) {
 	evt = ConvertLuaEvent(evt);
 	if(evt >= _LargestEventID) {
@@ -756,7 +777,7 @@ int LuaParser::EventSpell(QuestEventID evt, Mob* mob, Client *client, uint32 spe
 	return _EventSpell(package_name, evt, mob, client, spell_id, data, extra_data, extra_pointers);
 }
 
-int LuaParser::_EventSpell(std::string package_name, QuestEventID evt, Mob* mob, Client *client, uint32 spell_id, std::string data, uint32 extra_data,
+int LuaParser::_EventSpell(std::string package_name, QuestEventID evt, Mob* mob, Client *client, int32 spell_id, std::string data, uint32 extra_data,
 						   std::vector<std::any> *extra_pointers, luabind::adl::object *l_func) {
 	const char *sub_name = LuaEvents[evt];
 
@@ -942,7 +963,7 @@ bool LuaParser::GlobalPlayerHasQuestSub(QuestEventID evt) {
 	return HasFunction(subname, "global_player");
 }
 
-bool LuaParser::SpellHasQuestSub(uint32 spell_id, QuestEventID evt) {
+bool LuaParser::SpellHasQuestSub(int32 spell_id, QuestEventID evt) {
 	evt = ConvertLuaEvent(evt);
 	if(evt >= _LargestEventID) {
 		return false;
@@ -1009,7 +1030,7 @@ void LuaParser::LoadItemScript(std::string filename, EQ::ItemInstance *item) {
 	LoadScript(filename, package_name);
 }
 
-void LuaParser::LoadSpellScript(std::string filename, uint32 spell_id) {
+void LuaParser::LoadSpellScript(std::string filename, int32 spell_id) {
 	std::string package_name = "spell_" + std::to_string(spell_id);
 
 	LoadScript(filename, package_name);
@@ -1516,7 +1537,7 @@ int LuaParser::DispatchEventItem(QuestEventID evt, Client *client, EQ::ItemInsta
     return ret;
 }
 
-int LuaParser::DispatchEventSpell(QuestEventID evt, Mob* mob, Client *client, uint32 spell_id, std::string data, uint32 extra_data,
+int LuaParser::DispatchEventSpell(QuestEventID evt, Mob* mob, Client *client, int32 spell_id, std::string data, uint32 extra_data,
 								   std::vector<std::any> *extra_pointers) {
 	evt = ConvertLuaEvent(evt);
 	if(evt >= _LargestEventID) {
@@ -1658,7 +1679,7 @@ uint64 LuaParser::GetExperienceForKill(Client *self, Mob *against, bool &ignoreD
 }
 
 
-int64 LuaParser::CommonDamage(Mob *self, Mob* attacker, int64 value, uint16 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, bool &ignore_default)
+int64 LuaParser::CommonDamage(Mob *self, Mob* attacker, int64 value, int32 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, bool &ignore_default)
 {
 	int64 retval = 0;
 	for (auto &mod : mods_) {
@@ -1667,7 +1688,7 @@ int64 LuaParser::CommonDamage(Mob *self, Mob* attacker, int64 value, uint16 spel
 	return retval;
 }
 
-uint64 LuaParser::HealDamage(Mob *self, Mob* caster, uint64 value, uint16 spell_id, bool &ignore_default)
+uint64 LuaParser::HealDamage(Mob *self, Mob* caster, uint64 value, int32 spell_id, bool &ignore_default)
 {
 	uint64 retval = 0;
 	for (auto &mod : mods_) {
@@ -1676,7 +1697,7 @@ uint64 LuaParser::HealDamage(Mob *self, Mob* caster, uint64 value, uint16 spell_
 	return retval;
 }
 
-bool LuaParser::IsImmuneToSpell(Mob *self, Mob *caster, uint16 spell_id, bool &ignore_default)
+bool LuaParser::IsImmuneToSpell(Mob *self, Mob *caster, int32 spell_id, bool &ignore_default)
 {
 	bool retval = false;
 	for (auto &mod : mods_) {
@@ -1685,7 +1706,7 @@ bool LuaParser::IsImmuneToSpell(Mob *self, Mob *caster, uint16 spell_id, bool &i
 	return retval;
 }
 
-int64 LuaParser::CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, uint16 spell_id, int ticsremaining, bool &ignoreDefault)
+int64 LuaParser::CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, int32 spell_id, int ticsremaining, bool &ignoreDefault)
 {
 	int64 retval = 0;
 	for (auto &mod : mods_) {

@@ -1,20 +1,22 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2003 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 
+/*
 	client_process.cpp:
 	Handles client login sequence and packets sent from client to zone
 */
@@ -42,6 +44,8 @@
 #include "zone/zonedb.h"
 
 #include <iostream>
+
+#include "client_version.h"
 
 extern QueryServ* QServ;
 extern Zone* zone;
@@ -227,11 +231,11 @@ bool Client::Process() {
 			}
 
 			if (song_target == nullptr) {
-				InterruptSpell(SONG_ENDS_ABRUPTLY, 0x121, bardsong);
+				InterruptSpell(SONG_ENDS_ABRUPTLY, Chat::SpellFailure, bardsong);
 			}
 			else {
 				if (!ApplyBardPulse(bardsong, song_target, bardsong_slot)) {
-					InterruptSpell(SONG_ENDS_ABRUPTLY, 0x121, bardsong);
+					InterruptSpell(SONG_ENDS_ABRUPTLY, Chat::SpellFailure, bardsong);
 				}
 			}
 		}
@@ -1029,7 +1033,7 @@ uint8 Client::WithCustomer(uint16 NewCustomer){
 	return 0;
 }
 
-void Client::OPRezzAnswer(uint32 Action, uint32 SpellID, uint16 ZoneID, uint16 InstanceID, float x, float y, float z)
+void Client::OPRezzAnswer(uint32 Action, int32 SpellID, uint16 ZoneID, uint16 InstanceID, float x, float y, float z)
 {
 	if(PendingRezzXP < 0) {
 		// pendingrezexp is set to -1 if we are not expecting an OP_RezzAnswer
@@ -1044,7 +1048,7 @@ void Client::OPRezzAnswer(uint32 Action, uint32 SpellID, uint16 ZoneID, uint16 I
 		// corpse is in has shutdown since the rez spell was cast.
 		database.MarkCorpseAsResurrected(PendingRezzDBID);
 		LogSpells("Player [{}] got a [{}] Rezz spellid [{}] in zone[{}] instance id [{}]",
-				name, (uint16)spells[SpellID].base_value[0],
+				name, spells[SpellID].base_value[0],
 				SpellID, ZoneID, InstanceID);
 
 		const bool use_old_resurrection = (
@@ -1057,7 +1061,7 @@ void Client::OPRezzAnswer(uint32 Action, uint32 SpellID, uint16 ZoneID, uint16 I
 			)
 		);
 
-		const uint16 resurrection_sickness_spell_id = (
+		const int32 resurrection_sickness_spell_id = (
 			use_old_resurrection ?
 			RuleI(Character, OldResurrectionSicknessSpellID) :
 			RuleI(Character, ResurrectionSicknessSpellID)
@@ -2305,11 +2309,7 @@ void Client::ClearHover()
 	entity_list.QueueClients(this, outapp, false);
 	safe_delete(outapp);
 
-	if (IsClient() && CastToClient()->ClientVersionBit() & EQ::versions::maskUFAndLater)
-	{
-		EQApplicationPacket *outapp = MakeBuffsPacket(false);
-		CastToClient()->FastQueuePacket(&outapp);
-	}
+	ClientPatch::SendFullBuffRefresh(this);
 
 	dead = false;
 }

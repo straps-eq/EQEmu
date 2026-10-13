@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2003 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "zone.h"
 
 #include "common/data_verification.h"
@@ -2278,7 +2277,7 @@ void Zone::ClearBlockedSpells()
 	zone_total_blocked_spells = 0;
 }
 
-bool Zone::IsSpellBlocked(uint32 spell_id, const glm::vec3 &location)
+bool Zone::IsSpellBlocked(int32 spell_id, const glm::vec3 &location)
 {
 	if (blocked_spells) {
 		bool exception = false;
@@ -2331,7 +2330,7 @@ bool Zone::IsSpellBlocked(uint32 spell_id, const glm::vec3 &location)
 	return false;
 }
 
-const char *Zone::GetSpellBlockedMessage(uint32 spell_id, const glm::vec3 &location)
+const char *Zone::GetSpellBlockedMessage(int32 spell_id, const glm::vec3 &location)
 {
 	if (blocked_spells) {
 		for (int x = 0; x < GetZoneTotalBlockedSpells(); x++) {
@@ -2380,7 +2379,7 @@ void Zone::LoadLDoNTraps()
 
 		t->id       = e.id;
 		t->type     = static_cast<LDoNChestTypes>(e.type);
-		t->spell_id = static_cast<uint32>(e.spell_id);
+		t->spell_id = e.spell_id;
 		t->skill    = e.skill;
 		t->locked   = e.locked;
 

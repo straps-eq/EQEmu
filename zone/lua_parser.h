@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #ifdef LUA_EQEMU
@@ -80,7 +97,7 @@ public:
 		QuestEventID evt,
 		Mob* mob,
 		Client *client,
-		uint32 spell_id,
+		int32 spell_id,
 		std::string data,
 		uint32 extra_data,
 		std::vector<std::any> *extra_pointers
@@ -143,7 +160,7 @@ public:
 	virtual bool HasGlobalQuestSub(QuestEventID evt);
 	virtual bool PlayerHasQuestSub(QuestEventID evt);
 	virtual bool GlobalPlayerHasQuestSub(QuestEventID evt);
-	virtual bool SpellHasQuestSub(uint32 spell_id, QuestEventID evt);
+	virtual bool SpellHasQuestSub(int32 spell_id, QuestEventID evt);
 	virtual bool ItemHasQuestSub(EQ::ItemInstance *itm, QuestEventID evt);
 	virtual bool EncounterHasQuestSub(std::string encounter_name, QuestEventID evt);
 	virtual bool HasEncounterSub(const std::string& package_name, QuestEventID evt);
@@ -159,7 +176,7 @@ public:
 	virtual void LoadPlayerScript(std::string filename);
 	virtual void LoadGlobalPlayerScript(std::string filename);
 	virtual void LoadItemScript(std::string filename, EQ::ItemInstance *item);
-	virtual void LoadSpellScript(std::string filename, uint32 spell_id);
+	virtual void LoadSpellScript(std::string filename, int32 spell_id);
 	virtual void LoadEncounterScript(std::string filename, std::string encounter_name);
 	virtual void LoadBotScript(std::string filename);
 	virtual void LoadGlobalBotScript(std::string filename);
@@ -203,7 +220,7 @@ public:
 		QuestEventID evt,
 		Mob* mob,
 		Client *client,
-		uint32 spell_id,
+		int32 spell_id,
 		std::string data,
 		uint32 extra_data,
 		std::vector<std::any> *extra_pointers
@@ -249,14 +266,14 @@ public:
 	uint32 GetRequiredAAExperience(Client *self, bool &ignoreDefault);
 	uint32 GetEXPForLevel(Client *self, uint16 level, bool &ignoreDefault);
 	uint64 GetExperienceForKill(Client *self, Mob *against, bool &ignoreDefault);
-	int64 CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, uint16 spell_id, int ticsremaining, bool &ignoreDefault);
+	int64 CalcSpellEffectValue_formula(Mob *self, uint32 formula, int64 base_value, int64 max_value, int caster_level, int32 spell_id, int ticsremaining, bool &ignoreDefault);
 	int32 UpdatePersonalFaction(Mob *self, int32 npc_value, int32 faction_id, int32 current_value, int32 temp, int32 this_faction_min, int32 this_faction_max, bool &ignore_default);
 	void RegisterBug(Client *self, BaseBugReportsRepository::BugReports bug, bool &ignore_default);
-	int64 CommonDamage(Mob *self, Mob* attacker, int64 value, uint16 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, bool &ignore_default);
-	uint64 HealDamage(Mob *self, Mob* caster, uint64 value, uint16 spell_id, bool &ignore_default);
+	int64 CommonDamage(Mob *self, Mob* attacker, int64 value, int32 spell_id, int skill_used, bool avoidable, int8 buff_slot, bool buff_tic, int special, bool &ignore_default);
+	uint64 HealDamage(Mob *self, Mob* caster, uint64 value, int32 spell_id, bool &ignore_default);
 	uint64 SetEXP(Mob *self, ExpSource exp_source, uint64 current_exp, uint64 set_exp, bool is_rezz_exp, bool &ignore_default);
 	uint64 SetAAEXP(Mob *self, ExpSource exp_source, uint64 current_aa_exp, uint64 set_aa_exp, bool is_rezz_exp, bool &ignore_default);
-	bool IsImmuneToSpell(Mob *self, Mob* caster, uint16 spell_id, bool &ignore_default);
+	bool IsImmuneToSpell(Mob *self, Mob* caster, int32 spell_id, bool &ignore_default);
 private:
 	LuaParser();
 	LuaParser(const LuaParser&);
@@ -297,7 +314,7 @@ private:
 		QuestEventID evt,
 		Mob* mob,
 		Client *client,
-		uint32 spell_id,
+		int32 spell_id,
 		std::string data,
 		uint32 extra_data,
 		std::vector<std::any> *extra_pointers,

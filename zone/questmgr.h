@@ -1,21 +1,20 @@
-/*  EQEMu:  Everquest Server Emulator
-    Copyright (C) 2001-2004  EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; version 2 of the License.
+	Copyright (C) 2001-2026 EQEmu Development Team
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 
 #include "common/timer.h"
@@ -78,8 +77,8 @@ public:
 	void disable_spawn2(uint32 spawn2_id);
 	void setstat(int stat, int value);
 	void incstat(int stat, int value);
-	void castspell(uint16 spell_id, uint16 target_id);
-	void selfcast(uint16 spell_id);
+	void castspell(int32 spell_id, uint16 target_id);
+	void selfcast(int32 spell_id);
 	void addloot(int item_id, int charges = 0, bool equipitem = true, int aug1 = 0, int aug2 = 0, int aug3 = 0, int aug4 = 0, int aug5 = 0, int aug6 = 0);
 	void Zone(const char *zone_name);
 	void ZoneGroup(const char *zone_name);
@@ -119,7 +118,7 @@ public:
 	void traindisc(uint32 discipline_tome_item_id);
 	bool isdisctome(uint32 item_id);
 	std::string getracename(uint16 race_id);
-	std::string getspellname(uint32 spell_id);
+	std::string getspellname(int32 spell_id);
 	std::string getskillname(int skill_id);
 	std::string getldonthemename(uint32 theme_id);
 	std::string getfactionname(int faction_id);
@@ -323,7 +322,7 @@ public:
 	void CrossZoneMove(const CZMove_Struct& m);
 	void CrossZoneSetEntityVariable(uint8 update_type, int update_identifier, const char* variable_name, const char* variable_value, const char* client_name = "");
 	void CrossZoneSignal(uint8 update_type, int update_identifier, int signal_id, const char* client_name = "");
-	void CrossZoneSpell(uint8 update_type, uint8 update_subtype, int update_identifier, uint32 spell_id, const char* client_name = "");
+	void CrossZoneSpell(uint8 update_type, uint8 update_subtype, int update_identifier, int32 spell_id, const char* client_name = "");
 	void CrossZoneTaskUpdate(uint8 update_type, uint8 update_subtype, int update_identifier, uint32 task_identifier, int task_subidentifier = -1, int update_count = 1, bool enforce_level_requirement = false, const char* client_name = "");
 	void WorldWideDialogueWindow(const char* message, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
 	void WorldWideLDoNUpdate(uint8 update_type, uint32 theme_id, int points = 1, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
@@ -332,7 +331,7 @@ public:
 	void WorldWideMove(uint8 update_type, const char* zone_short_name, uint16 instance_id = 0, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
 	void WorldWideSetEntityVariable(uint8 update_type, const char* variable_name, const char* variable_value, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
 	void WorldWideSignal(uint8 update_type, int signal_id, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
-	void WorldWideSpell(uint8 update_type, uint32 spell_id, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
+	void WorldWideSpell(uint8 update_type, int32 spell_id, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
 	void WorldWideTaskUpdate(uint8 update_type, uint32 task_identifier, int task_subidentifier = -1, int update_count = 1, bool enforce_level_requirement = false, uint8 min_status = AccountStatus::Player, uint8 max_status = AccountStatus::Player);
 	bool EnableRecipe(uint32 recipe_id);
 	bool DisableRecipe(uint32 recipe_id);
@@ -347,8 +346,8 @@ public:
 	std::string getdeityname(uint32 deity_id);
 	std::string getinventoryslotname(int16 slot_id);
 	const int getitemstat(uint32 item_id, std::string stat_identifier);
-	int getspellstat(uint32 spell_id, std::string stat_identifier, uint8 slot = 0);
-	const SPDat_Spell_Struct *getspell(uint32 spell_id);
+	int getspellstat(int32 spell_id, std::string stat_identifier, uint8 slot = 0);
+	const SPDat_Spell_Struct *getspell(int32 spell_id);
 	std::string getenvironmentaldamagename(uint8 damage_type);
 	void TrackNPC(uint32 entity_id);
 	int GetRecipeMadeCount(uint32 recipe_id);

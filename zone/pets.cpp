@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2004 EQEMu Development Team (http://eqemu.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "pets.h"
 
 #include "common/repositories/character_pet_name_repository.h"
@@ -69,7 +68,7 @@ void GetRandPetName(char *name)
 	strn0cpy(name, temp.c_str(), 64);
 }
 
-void Mob::MakePet(uint16 spell_id, const char* pettype, const char *petname) {
+void Mob::MakePet(int32 spell_id, const char* pettype, const char *petname) {
 	// petpower of -1 is used to get the petpower based on whichever focus is currently
 	// equipped. This should replicate the old functionality for the most part.
 	MakePoweredPet(spell_id, pettype, -1, petname);
@@ -79,7 +78,7 @@ void Mob::MakePet(uint16 spell_id, const char* pettype, const char *petname) {
 // making it possible for petpower to be retained without the focus item having to
 // stay equipped when the character zones. petpower of -1 means that the currently equipped petfocus
 // of a client is searched for and used instead.
-void Mob::MakePoweredPet(uint16 spell_id, const char* pettype, int16 petpower,
+void Mob::MakePoweredPet(int32 spell_id, const char* pettype, int16 petpower,
 		const char *petname, float in_size) {
 	// Sanity and early out checking first.
 	if(HasPet() || pettype == nullptr)
@@ -346,7 +345,7 @@ void NPC::TryDepopTargetLockedPets(Mob* current_target) {
 /* This is why the pets ghost - pets were being spawned too far away from its npc owner and some
 into walls or objects (+10), this sometimes creates the "ghost" effect. I changed to +2 (as close as I
 could get while it still looked good). I also noticed this can happen if an NPC is spawned on the same spot of another or in a related bad spot.*/
-Pet::Pet(NPCType *type_data, Mob *owner, uint8 pet_type, uint16 spell_id, int16 power)
+Pet::Pet(NPCType *type_data, Mob *owner, uint8 pet_type, int32 spell_id, int16 power)
 : NPC(type_data, 0, owner->GetPosition() + glm::vec4(2.0f, 2.0f, 0.0f, 0.0f), GravityBehavior::Water)
 {
 	GiveNPCTypeData(type_data);
@@ -472,7 +471,8 @@ void Mob::SetPetID(uint16 NewPetID) {
 	}
 }
 
-void NPC::GetPetState(SpellBuff_Struct *pet_buffs, uint32 *items, char *name) {
+void NPC::SavePetState(Buffs_Struct* pet_buffs, uint32 *items, char *name) const
+{
 	//save the pet name
 	strn0cpy(name, GetName(), 64);
 
@@ -480,102 +480,71 @@ void NPC::GetPetState(SpellBuff_Struct *pet_buffs, uint32 *items, char *name) {
 	memcpy(items, equipment, sizeof(uint32) * EQ::invslot::EQUIPMENT_COUNT);
 
 	//save their buffs.
-	for (int i=EQ::invslot::EQUIPMENT_BEGIN; i < GetPetMaxTotalSlots(); i++) {
-		if (IsValidSpell(buffs[i].spellid)) {
-			pet_buffs[i].spellid = buffs[i].spellid;
-			pet_buffs[i].effect_type = i+1;
-			pet_buffs[i].duration = buffs[i].ticsremaining;
-			pet_buffs[i].level = buffs[i].casterlevel;
-			pet_buffs[i].bard_modifier = 10;
-			pet_buffs[i].counters = buffs[i].counters;
-			pet_buffs[i].bard_modifier = buffs[i].instrument_mod;
-		}
-		else {
-			pet_buffs[i].spellid = SPELL_UNKNOWN;
-			pet_buffs[i].duration = 0;
-			pet_buffs[i].level = 0;
-			pet_buffs[i].bard_modifier = 10;
-			pet_buffs[i].counters = 0;
-		}
-	}
+	memcpy(pet_buffs, buffs, sizeof(Buffs_Struct) * GetPetMaxTotalSlots());
 }
 
-void NPC::SetPetState(SpellBuff_Struct *pet_buffs, uint32 *items) {
+void NPC::RestorePetState(const Buffs_Struct* pet_buffs, const uint32* items) {
 	//restore their buffs...
+	memcpy(buffs, pet_buffs, sizeof(Buffs_Struct) * GetPetMaxTotalSlots());
 
-	int i;
-	for (i = 0; i < GetPetMaxTotalSlots(); i++) {
-		for(int z = 0; z < GetPetMaxTotalSlots(); z++) {
-		// check for duplicates
-			if(IsValidSpell(buffs[z].spellid) && buffs[z].spellid == pet_buffs[i].spellid) {
-				buffs[z].spellid = SPELL_UNKNOWN;
-				pet_buffs[i].spellid = 0xFFFFFFFF;
-			}
-		}
-
-		if (pet_buffs[i].spellid <= (uint32)SPDAT_RECORDS && pet_buffs[i].spellid != 0 && (pet_buffs[i].duration > 0 || pet_buffs[i].duration == -1)) {
-			if(pet_buffs[i].level == 0 || pet_buffs[i].level > 100)
-				pet_buffs[i].level = 1;
-			buffs[i].spellid			= pet_buffs[i].spellid;
-			buffs[i].ticsremaining		= pet_buffs[i].duration;
-			buffs[i].casterlevel		= pet_buffs[i].level;
-			buffs[i].casterid			= 0;
-			buffs[i].counters			= pet_buffs[i].counters;
-			buffs[i].hit_number			= spells[pet_buffs[i].spellid].hit_number;
-			buffs[i].instrument_mod		= pet_buffs[i].bard_modifier;
-		}
-		else {
-			buffs[i].spellid = SPELL_UNKNOWN;
-			pet_buffs[i].spellid = 0xFFFFFFFF;
-			pet_buffs[i].effect_type = 0;
-			pet_buffs[i].level = 0;
-			pet_buffs[i].duration = 0;
-			pet_buffs[i].bard_modifier = 0;
-		}
-	}
-	for (int j1=0; j1 < GetPetMaxTotalSlots(); j1++) {
-		if (buffs[j1].spellid <= (uint32)SPDAT_RECORDS) {
-			for (int x1=0; x1 < EFFECT_COUNT; x1++) {
-				switch (spells[buffs[j1].spellid].effect_id[x1]) {
-					case SpellEffect::AddMeleeProc:
-					case SpellEffect::WeaponProc:
-						// We need to reapply buff based procs
-						// We need to do this here so suspended pets also regain their procs.
-						AddProcToWeapon(GetProcID(buffs[j1].spellid,x1), false, 100+spells[buffs[j1].spellid].limit_value[x1], buffs[j1].spellid, buffs[j1].casterlevel, GetSpellProcLimitTimer(buffs[j1].spellid, ProcType::MELEE_PROC));
-						break;
-					case SpellEffect::DefensiveProc:
-						AddDefensiveProc(GetProcID(buffs[j1].spellid, x1), 100 + spells[buffs[j1].spellid].limit_value[x1], buffs[j1].spellid, GetSpellProcLimitTimer(buffs[j1].spellid, ProcType::DEFENSIVE_PROC));
-						break;
-					case SpellEffect::RangedProc:
-						AddRangedProc(GetProcID(buffs[j1].spellid, x1), 100 + spells[buffs[j1].spellid].limit_value[x1], buffs[j1].spellid, GetSpellProcLimitTimer(buffs[j1].spellid, ProcType::RANGED_PROC));
-						break;
-					case SpellEffect::Charm:
-					case SpellEffect::Rune:
-					case SpellEffect::NegateAttacks:
-					case SpellEffect::Illusion:
-						buffs[j1].spellid = SPELL_UNKNOWN;
-						pet_buffs[j1].spellid = SPELLBOOK_UNKNOWN;
-						pet_buffs[j1].effect_type = 0;
-						pet_buffs[j1].level = 0;
-						pet_buffs[j1].duration = 0;
-						pet_buffs[j1].bard_modifier = 0;
-						x1 = EFFECT_COUNT;
-						break;
-					// We can't send appearance packets yet, put down at CompleteConnect
+	for (int slot = 0; slot < GetPetMaxTotalSlots(); ++slot) {
+		if (IsValidSpell(buffs[slot].spellid)) {
+			// check for duplicates of valid spells, keep the lowest one
+			for (int slot2 = slot + 1; slot2 < GetPetMaxTotalSlots(); ++slot2) {
+				if (IsValidSpell(buffs[slot2].spellid) && buffs[slot].spellid == buffs[slot2].spellid) {
+					buffs[slot2].spellid = SPELL_UNKNOWN;
+					buffs[slot2].ticsremaining = 0;
 				}
 			}
+
+			// re-add any specific passive effects that need to be added
+			for (int effect = 0; effect < EFFECT_COUNT; ++effect) {
+				switch (spells[buffs[slot].spellid].effect_id[effect]) {
+				case SpellEffect::AddMeleeProc:
+				case SpellEffect::WeaponProc:
+					// We need to reapply buff based procs
+					// We need to do this here so suspended pets also regain their procs.
+					AddProcToWeapon(GetProcID(buffs[slot].spellid, effect), false,
+						100 + spells[buffs[slot].spellid].limit_value[effect], buffs[slot].spellid,
+						buffs[slot].casterlevel, GetSpellProcLimitTimer(buffs[slot].spellid, ProcType::MELEE_PROC));
+					break;
+				case SpellEffect::DefensiveProc:
+					AddDefensiveProc(GetProcID(buffs[slot].spellid, effect),
+						100 + spells[buffs[slot].spellid].limit_value[effect], buffs[slot].spellid,
+						GetSpellProcLimitTimer(buffs[slot].spellid, ProcType::DEFENSIVE_PROC));
+					break;
+				case SpellEffect::RangedProc:
+					AddRangedProc(GetProcID(buffs[slot].spellid, effect),
+						100 + spells[buffs[slot].spellid].limit_value[effect], buffs[slot].spellid,
+						GetSpellProcLimitTimer(buffs[slot].spellid, ProcType::RANGED_PROC));
+					break;
+				case SpellEffect::Charm:
+				case SpellEffect::Rune:
+				case SpellEffect::NegateAttacks:
+				case SpellEffect::Illusion:
+					buffs[slot].spellid = SPELL_UNKNOWN;
+					buffs[slot].ticsremaining = 0;
+					effect = EFFECT_COUNT; // don't process any more effects, this buff is gone
+					break;
+					// We can't send appearance packets yet, put down at CompleteConnect
+				default:
+					break;
+				}
+			}
+		} else {
+			// ensure this buff isn't going to stick around
+			buffs[slot].spellid = SPELL_UNKNOWN;
+			buffs[slot].ticsremaining = 0;
 		}
 	}
 
 	//restore their equipment...
-	for (i = EQ::invslot::EQUIPMENT_BEGIN; i <= EQ::invslot::EQUIPMENT_END; i++) {
-		if (items[i] == 0) {
+	for (int equip = EQ::invslot::EQUIPMENT_BEGIN; equip <= EQ::invslot::EQUIPMENT_END; equip++) {
+		if (items[equip] == 0) {
 			continue;
 		}
 
-		const EQ::ItemData *item2 = database.GetItem(items[i]);
-
-		if (item2) {
+		if (const EQ::ItemData *item2 = database.GetItem(items[equip])) {
 			bool noDrop           = (item2->NoDrop == 0); // Field is reverse logic
 			bool petCanHaveNoDrop = (RuleB(Pets, CanTakeNoDrop) && _CLIENTPET(this) && GetPetType() <= PetType::Normal);
 
@@ -650,7 +619,7 @@ bool ZoneDatabase::GetBasePetItems(int32 equipmentset, uint32 *items) {
 	return true;
 }
 
-bool Pet::CheckSpellLevelRestriction(Mob *caster, uint16 spell_id)
+bool Pet::CheckSpellLevelRestriction(Mob *caster, int32 spell_id)
 {
 	auto owner = GetOwner();
 	if (owner)

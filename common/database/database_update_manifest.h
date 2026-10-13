@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #include "common/database/database_update.h"
@@ -7189,6 +7206,64 @@ ALTER TABLE `character_parcels_containers`
 	ADD COLUMN `evolve_amount` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `quantity`;
 )",
 		.content_schema_update = false
+	},
+	ManifestEntry{
+		.version = 9329,
+		.description = "2026_04_27_spell_id_type_correction.sql",
+		.check = "SHOW COLUMNS FROM `character_spells` WHERE `Field` LIKE 'spell_id' AND `Type` LIKE 'int(%)'",
+		.condition = "empty",
+		.match = "",
+		.sql = R"(
+ALTER TABLE `blocked_spells` MODIFY COLUMN `spellid` INTEGER NULL;
+ALTER TABLE `character_buffs` MODIFY COLUMN `spell_id` INTEGER NOT NULL;
+ALTER TABLE `character_memmed_spells` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `character_spells` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `damageshieldtypes` MODIFY COLUMN `spellid` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `ldon_trap_templates` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS `merc_buffs` MODIFY COLUMN `SpellId` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS `merc_spell_list_entries` MODIFY COLUMN `spell_id` INTEGER NOT NULL;
+ALTER TABLE `npc_spells_entries` MODIFY COLUMN `spellid` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `spell_buckets` MODIFY COLUMN `spell_id` INTEGER NOT NULL;
+)"
+	},
+	ManifestEntry{
+		.version = 9330,
+		.description = "2026_04_30_buffdurations.sql",
+		.check = "SHOW COLUMNS FROM `character_buffs` LIKE 'initialduration'",
+		.condition = "empty",
+		.match = "",
+		.sql = R"(
+ALTER TABLE `character_buffs`
+	ADD COLUMN `initialduration` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `ticsremaining`,
+	CHANGE COLUMN `dot_rune` `dot_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0;
+UPDATE `character_buffs` SET `initialduration` = `ticsremaining` WHERE TRUE;
+
+ALTER TABLE IF EXISTS `merc_buffs`
+	CHANGE COLUMN `dot_rune` `dot_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0,
+	ADD COLUMN `InitialDuration` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `TicsRemaining`,
+	ADD COLUMN `instrument_mod` INT(10) UNSIGNED NOT NULL DEFAULT 10 AFTER `ExtraDIChance`;
+IF EXISTS(
+	SELECT 1 FROM `information_schema`.`TABLES` WHERE `table_schema` = DATABASE() AND `table_name` = 'merc_buffs'
+) THEN UPDATE `merc_buffs` SET `InitialDuration` = `TicsRemaining` WHERE TRUE; END IF;
+
+ALTER TABLE `character_pet_buffs`
+	CHANGE COLUMN `char_id` `character_id` INT(11) UNSIGNED NOT NULL,
+	CHANGE COLUMN `slot` `slot_id` TINYINT(3) UNSIGNED NOT NULL,
+	CHANGE COLUMN `caster_level` `caster_level` TINYINT(3) UNSIGNED NOT NULL,
+	RENAME COLUMN `castername` TO `caster_name`,
+	ADD COLUMN `initialduration` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `ticsremaining`,
+	CHANGE COLUMN `counters` `counters` INT(10) UNSIGNED NOT NULL DEFAULT 0,
+	CHANGE COLUMN `numhits` `numhits` INT(10) UNSIGNED NOT NULL DEFAULT 0,
+	CHANGE COLUMN `rune` `melee_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0,
+	ADD COLUMN `magic_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `melee_rune`,
+	ADD COLUMN `persistent` TINYINT(3) UNSIGNED NOT NULL DEFAULT 0 AFTER `magic_rune`,
+	ADD COLUMN `dot_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `persistent`,
+	ADD COLUMN `caston_x` INT(10) NOT NULL DEFAULT 0 AFTER `dot_rune`,
+	ADD COLUMN `caston_y` INT(10) NOT NULL DEFAULT 0 AFTER `caston_x`,
+	ADD COLUMN `caston_z` INT(10) NOT NULL DEFAULT 0 AFTER `caston_y`,
+	ADD COLUMN `ExtraDIChance` INT(10) NOT NULL DEFAULT 0 AFTER `caston_z`,
+	CHANGE COLUMN `instrument_mod` `instrument_mod` INT(10) UNSIGNED NOT NULL DEFAULT 10 AFTER `ExtraDIChance`;
+)",
 	},
 // -- template; copy/paste this when you need to create a new entry
 //	ManifestEntry{

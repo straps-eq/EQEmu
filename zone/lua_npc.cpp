@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_npc.h"
@@ -719,12 +736,12 @@ void Lua_NPC::SetLDoNTrapType(uint8 trap_type) {
 	self->SetLDoNTrapType(trap_type);
 }
 
-uint16 Lua_NPC::GetLDoNTrapSpellID() {
+int32 Lua_NPC::GetLDoNTrapSpellID() {
 	Lua_Safe_Call_Int();
 	return self->GetLDoNTrapSpellID();
 }
 
-void Lua_NPC::SetLDoNTrapSpellID(uint16 spell_id) {
+void Lua_NPC::SetLDoNTrapSpellID(int32 spell_id) {
 	Lua_Safe_Call_Void();
 	self->SetLDoNTrapSpellID(spell_id);
 }
@@ -1018,7 +1035,7 @@ luabind::scope lua_register_npc() {
 	.def("GetMinDMG", (uint32(Lua_NPC::*)(void))&Lua_NPC::GetMinDMG)
 	.def("GetLDoNLockedSkill", (uint16(Lua_NPC::*)(void))&Lua_NPC::GetLDoNLockedSkill)
 	.def("GetLDoNTrapType", (uint8(Lua_NPC::*)(void))&Lua_NPC::GetLDoNTrapType)
-	.def("GetLDoNTrapSpellID", (uint16(Lua_NPC::*)(void))&Lua_NPC::GetLDoNTrapSpellID)
+	.def("GetLDoNTrapSpellID", (int32 (Lua_NPC::*)(void))&Lua_NPC::GetLDoNTrapSpellID)
 	.def("GetNPCAggro", (bool(Lua_NPC::*)(void))&Lua_NPC::GetNPCAggro)
 	.def("GetNPCFactionID", (int(Lua_NPC::*)(void))&Lua_NPC::GetNPCFactionID)
 	.def("GetNPCHate", (int64(Lua_NPC::*)(Lua_Mob))&Lua_NPC::GetNPCHate)
@@ -1051,6 +1068,7 @@ luabind::scope lua_register_npc() {
 	.def("GetWaypointMax", (int(Lua_NPC::*)(void))&Lua_NPC::GetWaypointMax)
 	.def("HasAISpellEffect", (bool(Lua_NPC::*)(int))&Lua_NPC::HasAISpellEffect)
 	.def("HasItem", (bool(Lua_NPC::*)(uint32))&Lua_NPC::HasItem)
+	.def("HasSpecialAbilities", &Lua_NPC::HasSpecialAbilities)
 	.def("IsAnimal", (bool(Lua_NPC::*)(void))&Lua_NPC::IsAnimal)
 	.def("IsGuarding", (bool(Lua_NPC::*)(void))&Lua_NPC::IsGuarding)
 	.def("IsLDoNLocked", (bool(Lua_NPC::*)(void))&Lua_NPC::IsLDoNLocked)
@@ -1101,7 +1119,7 @@ luabind::scope lua_register_npc() {
 	.def("SetLDoNLockedSkill", (void(Lua_NPC::*)(uint16))&Lua_NPC::SetLDoNLockedSkill)
 	.def("SetLDoNTrapped", (void(Lua_NPC::*)(bool))&Lua_NPC::SetLDoNTrapped)
 	.def("SetLDoNTrapDetected", (void(Lua_NPC::*)(bool))&Lua_NPC::SetLDoNTrapDetected)
-	.def("SetLDoNTrapSpellID", (void(Lua_NPC::*)(uint16))&Lua_NPC::SetLDoNTrapSpellID)
+	.def("SetLDoNTrapSpellID", (void(Lua_NPC::*)(int32 ))&Lua_NPC::SetLDoNTrapSpellID)
 	.def("SetLDoNTrapType", (void(Lua_NPC::*)(uint8))&Lua_NPC::SetLDoNTrapType)
 	.def("SetNPCAggro", (void(Lua_NPC::*)(bool))&Lua_NPC::SetNPCAggro)
 	.def("SetNPCFactionID", (void(Lua_NPC::*)(int))&Lua_NPC::SetNPCFactionID)

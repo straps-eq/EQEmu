@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -6,7 +23,7 @@
  * Any modifications to base repositories are to be made by the generator only
  *
  * @generator ./utils/scripts/generators/repository-generator.pl
- * @docs https://docs.eqemu.io/developer/repositories
+ * @docs https://docs.eqemu.dev/developer/repositories
  */
 
 #pragma once
@@ -51,7 +68,7 @@ public:
 		float       graveyard_x;
 		float       graveyard_y;
 		float       graveyard_z;
-		std::string graveyard_radius;
+		float       graveyard_radius;
 	};
 
 	static std::string PrimaryKey()
@@ -275,6 +292,7 @@ public:
 			e.graveyard_x       = row[29] ? strtof(row[29], nullptr) : 0;
 			e.graveyard_y       = row[30] ? strtof(row[30], nullptr) : 0;
 			e.graveyard_z       = row[31] ? strtof(row[31], nullptr) : 0;
+			e.graveyard_radius  = row[32] ? (strtof(row[32], nullptr) > 0.0f ? strtof(row[32], nullptr) : 0) : 0;
 
 			return e;
 		}
@@ -522,6 +540,7 @@ public:
 			e.graveyard_x       = row[29] ? strtof(row[29], nullptr) : 0;
 			e.graveyard_y       = row[30] ? strtof(row[30], nullptr) : 0;
 			e.graveyard_z       = row[31] ? strtof(row[31], nullptr) : 0;
+			e.graveyard_radius  = row[32] ? (strtof(row[32], nullptr) > 0.0f ? strtof(row[32], nullptr) : 0) : 0;
 
 			all_entries.push_back(e);
 		}
@@ -578,6 +597,7 @@ public:
 			e.graveyard_x       = row[29] ? strtof(row[29], nullptr) : 0;
 			e.graveyard_y       = row[30] ? strtof(row[30], nullptr) : 0;
 			e.graveyard_z       = row[31] ? strtof(row[31], nullptr) : 0;
+			e.graveyard_radius  = row[32] ? (strtof(row[32], nullptr) > 0.0f ? strtof(row[32], nullptr) : 0) : 0;
 
 			all_entries.push_back(e);
 		}

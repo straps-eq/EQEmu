@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "rof2.h"
 #include "rof2_structs.h"
 
@@ -71,7 +69,6 @@ namespace RoF2
 	static inline spells::CastingSlot ServerToRoF2CastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot RoF2ToServerCastingSlot(spells::CastingSlot slot);
 
-	static inline int ServerToRoF2BuffSlot(int index);
 	static inline int RoF2ToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -663,7 +660,7 @@ namespace RoF2
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -680,58 +677,12 @@ namespace RoF2
 		OUT(buff.y);
 		OUT(buff.x);
 		OUT(buff.z);
-		eq->slotid = ServerToRoF2BuffSlot(emu->slotid);
+		OUT(slotid);
 		// TODO: implement slot_data stuff
 		if (emu->bufffade == 1)
 			eq->bufffade = 1;
 		else
 			eq->bufffade = 2;
-
-		// Bit of a hack. OP_Buff appears to add/remove the buff while OP_BuffCreate adds/removes the actual buff icon
-		EQApplicationPacket *outapp = nullptr;
-		if (eq->bufffade == 1)
-		{
-			outapp = new EQApplicationPacket(OP_BuffCreate, 29);
-			outapp->WriteUInt32(emu->entityid);
-			outapp->WriteUInt32(0);	// tic timer
-			outapp->WriteUInt8(0);		// Type of OP_BuffCreate packet ?
-			outapp->WriteUInt16(1);		// 1 buff in this packet
-			outapp->WriteUInt32(eq->slotid);
-			outapp->WriteUInt32(0xffffffff);		// SpellID (0xffff to remove)
-			outapp->WriteUInt32(0);			// Duration
-			outapp->WriteUInt32(0);			// numhits
-			outapp->WriteUInt8(0);		// Caster name
-			outapp->WriteUInt8(0);		// Type
-		}
-		FINISH_ENCODE();
-
-		if (outapp)
-			dest->FastQueuePacket(&outapp);	// Send the OP_BuffCreate to remove the buff
-	}
-
-	ENCODE(OP_BuffCreate)
-	{
-		SETUP_VAR_ENCODE(BuffIcon_Struct);
-
-		uint32 sz = 12 + (17 * emu->count) + emu->name_lengths; // 17 includes nullterm
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		__packet->WriteUInt32(emu->entity_id);
-		__packet->WriteUInt32(emu->tic_timer);
-		__packet->WriteUInt8(emu->all_buffs);			// 1 indicates all buffs on the player (0 to add or remove a single buff)
-		__packet->WriteUInt16(emu->count);
-
-		for (int i = 0; i < emu->count; ++i)
-		{
-			__packet->WriteUInt32(emu->type == 0 ? ServerToRoF2BuffSlot(emu->entries[i].buff_slot) : emu->entries[i].buff_slot);
-			__packet->WriteUInt32(emu->entries[i].spell_id);
-			__packet->WriteUInt32(emu->entries[i].tics_remaining);
-			__packet->WriteUInt32(emu->entries[i].num_hits); // Unknown
-			__packet->WriteString(emu->entries[i].caster);
-		}
-		__packet->WriteUInt8(emu->type); // Unknown
 
 		FINISH_ENCODE();
 	}
@@ -755,7 +706,7 @@ namespace RoF2
 				ar(bl);
 
 				//packet size
-				auto            packet_size = bl.item_name.length() + 1 + 34;
+				size_t          packet_size = bl.item_name.length() + 1 + 34;
 				for (auto const &b: bl.trade_items) {
 					packet_size += b.item_name.length() + 1;
 					packet_size += 12;
@@ -1624,7 +1575,7 @@ namespace RoF2
 			//Log.LogDebugType(Logs::General, Logs::Netcode, "[ERROR] Yourname is %s", gu2->yourname);
 
 			int MemberCount = 1;
-			int PacketLength = 8 + strlen(gu2->leadersname) + 1 + 22 + strlen(gu2->yourname) + 1;
+			uint32 PacketLength = 8 + strlen(gu2->leadersname) + 1 + 22 + strlen(gu2->yourname) + 1;
 
 			for (int i = 0; i < 5; ++i)
 			{
@@ -2209,7 +2160,7 @@ namespace RoF2
 
 		char *Buffer = (char *)in->pBuffer;
 
-		int PacketSize = sizeof(structs::MercenaryMerchantList_Struct) - 4 + emu->MercTypeCount * 4;
+		uint32 PacketSize = sizeof(structs::MercenaryMerchantList_Struct) - 4 + emu->MercTypeCount * 4;
 		PacketSize += (sizeof(structs::MercenaryListEntry_Struct) - sizeof(structs::MercenaryStance_Struct)) * emu->MercCount;
 
 		uint32 r;
@@ -2280,15 +2231,19 @@ namespace RoF2
 		// There are 2 different sized versions of this packet depending if a merc is hired or not
 		if (emu->MercStatus >= 0)
 		{
-			PacketSize += sizeof(structs::MercenaryDataUpdate_Struct) + (sizeof(structs::MercenaryData_Struct) - sizeof(structs::MercenaryStance_Struct)) * emu->MercCount;
-
+			// Per-merc size: base struct minus Stances[1] and MercUnk05,
+			// then add back actual stances and name length per merc.
+			// MercUnk05 is a single trailing field after all mercs.
+			PacketSize += sizeof(structs::MercenaryDataUpdate_Struct);
 			uint32 r;
 			uint32 k;
 			for (r = 0; r < emu->MercCount; r++)
 			{
+				PacketSize += sizeof(structs::MercenaryData_Struct) - sizeof(structs::MercenaryStance_Struct) - sizeof(uint32); // subtract Stances[1] and MercUnk05
 				PacketSize += sizeof(structs::MercenaryStance_Struct) * emu->MercData[r].StanceCount;
 				PacketSize += strlen(emu->MercData[r].MercName);	// Null Terminator size already accounted for in the struct
 			}
+			PacketSize += sizeof(uint32); // MercUnk05 - trailing field after all mercs
 
 			outapp = new EQApplicationPacket(OP_MercenaryDataUpdate, PacketSize);
 			Buffer = (char *)outapp->pBuffer;
@@ -2314,15 +2269,14 @@ namespace RoF2
 				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->MercData[r].StanceCount);
 				VARSTRUCT_ENCODE_TYPE(int32, Buffer, emu->MercData[r].MercUnk03);
 				VARSTRUCT_ENCODE_TYPE(uint8, Buffer, emu->MercData[r].MercUnk04);
-				//VARSTRUCT_ENCODE_TYPE(uint8, Buffer, 0);	// MercName
 				VARSTRUCT_ENCODE_STRING(Buffer, emu->MercData[r].MercName);
 				for (k = 0; k < emu->MercData[r].StanceCount; k++)
 				{
 					VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->MercData[r].Stances[k].StanceIndex);
 					VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->MercData[r].Stances[k].Stance);
 				}
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, 1);	// MercUnk05
 			}
+			VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->MercData[0].MercUnk05);	// MercUnk05 - trailing field (unlocked slot count)
 		}
 		else
 		{
@@ -2459,38 +2413,6 @@ namespace RoF2
 		OUT_str(ButtonName0);
 		eq->ButtonName1_Count = 25;
 		OUT_str(ButtonName1);
-
-		FINISH_ENCODE();
-	}
-
-	ENCODE(OP_PetBuffWindow)
-	{
-		// The format of the RoF2 packet is identical to the OP_BuffCreate packet.
-
-		SETUP_VAR_ENCODE(PetBuff_Struct);
-
-		uint32 sz = 12 + (17 * emu->buffcount);
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		__packet->WriteUInt32(emu->petid);
-		__packet->WriteUInt32(0);		// PlayerID ?
-		__packet->WriteUInt8(1);		// 1 indicates all buffs on the pet (0 to add or remove a single buff)
-		__packet->WriteUInt16(emu->buffcount);
-
-		for (uint16 i = 0; i < PET_BUFF_COUNT; ++i)
-		{
-			if (emu->spellid[i])
-			{
-				__packet->WriteUInt32(i);
-				__packet->WriteUInt32(emu->spellid[i]);
-				__packet->WriteUInt32(emu->ticsremaining[i]);
-				__packet->WriteUInt32(0); // num hits
-				__packet->WriteString("");
-			}
-		}
-		__packet->WriteUInt8(0); // some sort of type
 
 		FINISH_ENCODE();
 	}
@@ -2785,7 +2707,7 @@ namespace RoF2
 			outapp->WriteUInt32(emu->buffs[r].counters);
 			outapp->WriteUInt32(emu->buffs[r].duration);
 			outapp->WriteUInt8(emu->buffs[r].level);
-			outapp->WriteUInt32(emu->buffs[r].spellid);
+			outapp->WriteSInt32 (emu->buffs[r].spellid);
 			outapp->WriteUInt8(effect_type);			// Only ever seen 2
 			outapp->WriteUInt32(emu->buffs[r].num_hits);
 			outapp->WriteUInt32(0);
@@ -3822,7 +3744,7 @@ namespace RoF2
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -3839,8 +3761,6 @@ namespace RoF2
 
 		FINISH_ENCODE();
 	}
-
-	ENCODE(OP_TargetBuffs) { ENCODE_FORWARD(OP_BuffCreate); }
 
 	ENCODE(OP_TaskDescription)
 	{
@@ -4122,8 +4042,8 @@ namespace RoF2
 					std::begin(emu->items),
 					std::end(emu->items),
 					std::begin(eq->items),
-					[&](const uint32 x) {
-						return x;
+					[&](uint64 x) {
+						return static_cast<uint32>(x);
 					}
 				);
 				std::copy_n(
@@ -4601,7 +4521,7 @@ namespace RoF2
 		int k;
 		for (r = 0; r < entrycount; r++, emu++) {
 
-			int PacketSize = 206;
+			uint32 PacketSize = 206;
 
 			PacketSize += strlen(emu->name);
 			PacketSize += strlen(emu->lastName);
@@ -5144,7 +5064,7 @@ namespace RoF2
 		FINISH_DIRECT_DECODE();
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -7492,21 +7412,6 @@ namespace RoF2
 		default: // we shouldn't have any issues with other slots ... just return something
 			return EQ::spells::CastingSlot::Discipline;
 		}
-	}
-
-	// these should be optimized out for RoF2 since they should all boil down to return index :P
-	// but lets leave it here for future proofing
-	static inline int ServerToRoF2BuffSlot(int index)
-	{
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-			       spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
 	}
 
 	static inline int RoF2ToServerBuffSlot(int index)

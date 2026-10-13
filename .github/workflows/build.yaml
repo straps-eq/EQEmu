@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - master
+      - develop
   pull_request:
-
 jobs:
   linux:
     name: Linux
@@ -25,10 +25,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential ninja-build ccache uuid-dev
 
+      - name: Restore vcpkg Cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build/vcpkg_installed
+            submodules/vcpkg/downloads
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-
+            ${{ runner.os }}-vcpkg-
+
       - name: Configure
         run: |
           cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DEQEMU_BUILD_TESTS=ON \
@@ -47,6 +58,9 @@ jobs:
   windows:
     name: Windows
     runs-on: windows-latest
+    env:
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\submodules\vcpkg\downloads
+      VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}\vcpkg_archives,readwrite'
     steps:
       - name: Checkout source
         uses: actions/checkout@v5
@@ -57,15 +71,25 @@ jobs:
         run: git config --global core.longpaths true
 
       - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
+
+      - name: Restore vcpkg Cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.VCPKG_DOWNLOADS }}
+            ${{ github.workspace }}/vcpkg_archives
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
 
       - name: Configure
         shell: pwsh
         run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+          cmake -S . -B build -G "Visual Studio 18 2026" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
             -DEQEMU_BUILD_TESTS=ON `
             -DEQEMU_BUILD_LOGIN=ON `
             -DEQEMU_BUILD_LUA=ON `
@@ -74,8 +98,8 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: cmake --build build --config RelWithDebInfo --target ALL_BUILD -- /m
+        run: cmake --build build --config Release --target ALL_BUILD -- /m
 
       - name: Test
         working-directory: build
-        run: ./bin/RelWithDebInfo/tests.exe
+        run: ./bin/Release/tests.exe

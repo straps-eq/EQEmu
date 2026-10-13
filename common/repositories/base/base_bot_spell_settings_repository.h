@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -21,7 +38,7 @@ public:
 	struct BotSpellSettings {
 		uint32_t id;
 		int32_t  bot_id;
-		int16_t  spell_id;
+		int32_t  spell_id;
 		int16_t  priority;
 		int16_t  min_hp;
 		int16_t  max_hp;
@@ -141,7 +158,7 @@ public:
 
 			e.id         = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.bot_id     = row[1] ? static_cast<int32_t>(atoi(row[1])) : 0;
-			e.spell_id   = row[2] ? static_cast<int16_t>(atoi(row[2])) : 0;
+			e.spell_id   = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 			e.priority   = row[3] ? static_cast<int16_t>(atoi(row[3])) : 0;
 			e.min_hp     = row[4] ? static_cast<int16_t>(atoi(row[4])) : 0;
 			e.max_hp     = row[5] ? static_cast<int16_t>(atoi(row[5])) : 0;
@@ -284,7 +301,7 @@ public:
 
 			e.id         = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.bot_id     = row[1] ? static_cast<int32_t>(atoi(row[1])) : 0;
-			e.spell_id   = row[2] ? static_cast<int16_t>(atoi(row[2])) : 0;
+			e.spell_id   = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 			e.priority   = row[3] ? static_cast<int16_t>(atoi(row[3])) : 0;
 			e.min_hp     = row[4] ? static_cast<int16_t>(atoi(row[4])) : 0;
 			e.max_hp     = row[5] ? static_cast<int16_t>(atoi(row[5])) : 0;
@@ -315,7 +332,7 @@ public:
 
 			e.id         = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.bot_id     = row[1] ? static_cast<int32_t>(atoi(row[1])) : 0;
-			e.spell_id   = row[2] ? static_cast<int16_t>(atoi(row[2])) : 0;
+			e.spell_id   = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 			e.priority   = row[3] ? static_cast<int16_t>(atoi(row[3])) : 0;
 			e.min_hp     = row[4] ? static_cast<int16_t>(atoi(row[4])) : 0;
 			e.max_hp     = row[5] ? static_cast<int16_t>(atoi(row[5])) : 0;

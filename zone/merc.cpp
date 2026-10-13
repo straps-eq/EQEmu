@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "merc.h"
 
 #include "common/skill_caps.h"
@@ -1551,7 +1568,7 @@ bool EntityList::Merc_AICheckCloseBeneficialSpells(Merc* caster, uint8 iChance, 
 	return false;
 }
 
-bool Merc::AIDoSpellCast(uint16 spellid, Mob* tar, int32 mana_cost, uint32* oDontDoAgainBefore) {
+bool Merc::AIDoSpellCast(int32 spellid, Mob* tar, int32 mana_cost, uint32* oDontDoAgainBefore) {
 	bool result = false;
 	MercSpell mercSpell = GetMercSpellBySpellID(this, spellid);
 
@@ -2119,7 +2136,7 @@ bool Merc::HasOrMayGetAggro() {
 	return mayGetAggro;
 }
 
-bool Merc::CheckAENuke(Merc* caster, Mob* tar, uint16 spell_id, uint8 &numTargets) {
+bool Merc::CheckAENuke(Merc* caster, Mob* tar, int32 spell_id, uint8 &numTargets) {
 	std::list<NPC*> npc_list;
 	entity_list.GetNPCList(npc_list);
 
@@ -2143,7 +2160,7 @@ bool Merc::CheckAENuke(Merc* caster, Mob* tar, uint16 spell_id, uint8 &numTarget
 	return false;
 }
 
-int64 Merc::GetFocusEffect(focusType type, uint16 spell_id, bool from_buff_tic) {
+int64 Merc::GetFocusEffect(focusType type, int32 spell_id, bool from_buff_tic) {
 
 	int32 realTotal = 0;
 	int32 realTotal2 = 0;
@@ -2509,7 +2526,7 @@ MercSpell Merc::GetFirstMercSpellBySpellType(Merc* caster, uint32 spellType) {
 	return result;
 }
 
-MercSpell Merc::GetMercSpellBySpellID(Merc* caster, uint16 spellid) {
+MercSpell Merc::GetMercSpellBySpellID(Merc* caster, int32 spellid) {
 	MercSpell result;
 
 	result.spellid = 0;
@@ -3579,7 +3596,7 @@ bool Merc::UseDiscipline(int32 spell_id, int32 target) {
 	return(true);
 }
 
-void Merc::SetSpellRecastTimer(uint16 timer_id, uint16 spellid, uint32 recast_delay) {
+void Merc::SetSpellRecastTimer(uint16 timer_id, int32 spellid, uint32 recast_delay) {
 	if(timer_id > 0) {
 		MercTimer timer;
 		timer.timerid = timer_id;
@@ -3600,7 +3617,7 @@ int32 Merc::GetSpellRecastTimer(Merc *caster, uint16 timer_id) {
 	return result;
 }
 
-bool Merc::CheckSpellRecastTimers(Merc *caster, uint16 spell_id) {
+bool Merc::CheckSpellRecastTimers(Merc *caster, int32 spell_id) {
 	if(caster) {
 		MercSpell mercSpell = GetMercSpellBySpellID(caster, spell_id);
 		if(mercSpell.spellid > 0 && mercSpell.time_cancast < Timer::GetCurrentTime()) { //checks spell recast
@@ -3612,7 +3629,7 @@ bool Merc::CheckSpellRecastTimers(Merc *caster, uint16 spell_id) {
 	return false;
 }
 
-void Merc::SetDisciplineRecastTimer(uint16 timer_id, uint16 spellid, uint32 recast_delay) {
+void Merc::SetDisciplineRecastTimer(uint16 timer_id, int32 spellid, uint32 recast_delay) {
 	if(timer_id > 0) {
 		MercTimer timer;
 		timer.timerid = timer_id;
@@ -3643,7 +3660,7 @@ int32 Merc::GetDisciplineRemainingTime(Merc *caster, uint16 timer_id) {
 	return result;
 }
 
-bool Merc::CheckDisciplineRecastTimers(Merc *caster, uint16 spell_id, uint16 timer_id) {
+bool Merc::CheckDisciplineRecastTimers(Merc *caster, int32 spell_id, uint16 timer_id) {
 	if(caster) {
 		MercSpell mercSpell = GetMercSpellBySpellID(caster, spell_id);
 		if(mercSpell.spellid > 0 && mercSpell.time_cancast < Timer::GetCurrentTime()) { //checks spell recast
@@ -3656,7 +3673,7 @@ bool Merc::CheckDisciplineRecastTimers(Merc *caster, uint16 spell_id, uint16 tim
 	return false;
 }
 
-void Merc::SetSpellTimeCanCast(uint16 spellid, uint32 recast_delay) {
+void Merc::SetSpellTimeCanCast(int32 spellid, uint32 recast_delay) {
 	for (int i = 0; i < merc_spells.size(); i++) {
 		if(merc_spells[i].spellid == spellid) {
 			merc_spells[i].time_cancast = Timer::GetCurrentTime() + recast_delay;
@@ -4029,7 +4046,7 @@ bool Merc::Attack(Mob* other, int Hand, bool bRiposte, bool IsStrikethrough, boo
 	return NPC::Attack(other, Hand, bRiposte, IsStrikethrough, IsFromSpell, opts);
 }
 
-void Merc::Damage(Mob* other, int64 damage, uint16 spell_id, EQ::skills::SkillType attack_skill, bool avoidable, int8 buffslot, bool iBuffTic, eSpecialAttacks special)
+void Merc::Damage(Mob* other, int64 damage, int32 spell_id, EQ::skills::SkillType attack_skill, bool avoidable, int8 buffslot, bool iBuffTic, eSpecialAttacks special)
 {
 	if(IsDead() || IsCorpse())
 		return;
@@ -4070,7 +4087,7 @@ Mob* Merc::GetOwnerOrSelf() {
 	return Result;
 }
 
-bool Merc::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillType attack_skill, uint8 killed_by, bool is_buff_tic)
+bool Merc::Death(Mob* killer_mob, int64 damage, int32 spell, EQ::skills::SkillType attack_skill, uint8 killed_by, bool is_buff_tic)
 {
 	if (!NPC::Death(killer_mob, damage, spell, attack_skill)) {
 		return false;
@@ -4868,14 +4885,8 @@ bool Client::CheckCanHireMerc(Mob* merchant, uint32 template_id) {
 
 	MercTemplate* mercTemplate = zone->GetMercTemplate(template_id);
 
-	//check for suspended merc
-	if(GetMercInfo().mercid != 0 && GetMercInfo().IsSuspended) {
-		SendMercResponsePackets(6);
-		return false;
-	}
-
-	// Check if max number of mercs is already reached
-	if(GetNumberOfMercenaries() >= MAXMERCS) {
+	// Check if all merc slots are full (counts both active and suspended mercs)
+	if (GetFirstFreeMercSlot() < 0) {
 		SendMercResponsePackets(6);
 		return false;
 	}
@@ -5029,8 +5040,21 @@ void Client::SuspendMercCommand() {
 				return;
 			}
 
+			// Suspend any currently active merc before unsuspending this one
+			Merc* active_merc = GetMerc();
+			if (active_merc) {
+				active_merc->Suspend();
+				SetMerc(nullptr);
+			}
+
 			// Get merc, assign it to client & spawn
-			Merc* merc = Merc::LoadMercenary(this, &zone->merc_templates[GetMercInfo().MercTemplateID], 0, true);
+			auto tmpl_it = zone->merc_templates.find(GetMercInfo().MercTemplateID);
+			if (tmpl_it == zone->merc_templates.end()) {
+				SendMercResponsePackets(3);
+				Log(Logs::General, Logs::Mercenaries, "SuspendMercCommand Invalid template for %s.", GetName());
+				return;
+			}
+			Merc* merc = Merc::LoadMercenary(this, &tmpl_it->second, 0, true);
 			if(merc)
 			{
 				SpawnMerc(merc, false);
@@ -5102,40 +5126,56 @@ void Client::SpawnMercOnZone() {
 
 	if(database.LoadMercenaryInfo(this))
 	{
-		if(!GetMercInfo().IsSuspended)
-		{
+		// Find the active (non-suspended) merc slot, or fall back to the first owned slot
+		int active_slot = -1;
+		int first_owned_slot = -1;
+		int max_slots = std::min(RuleI(Mercs, MaxMercSlots), MAXMERCS);
+		for (int slot = 0; slot < max_slots; slot++) {
+			if (GetMercInfo(slot).mercid != 0) {
+				if (first_owned_slot < 0) {
+					first_owned_slot = slot;
+				}
+				if (!GetMercInfo(slot).IsSuspended) {
+					active_slot = slot;
+					break;
+				}
+			}
+		}
+
+		if (active_slot >= 0) {
+			SetMercSlot(static_cast<uint8>(active_slot));
 			GetMercInfo().SuspendedTime = 0;
 			// Get merc, assign it to client & spawn
-			Merc* merc = Merc::LoadMercenary(this, &zone->merc_templates[GetMercInfo().MercTemplateID], 0, true);
-			if(merc)
-			{
-				SpawnMerc(merc, false);
+			auto tmpl_it = zone->merc_templates.find(GetMercInfo().MercTemplateID);
+			if (tmpl_it != zone->merc_templates.end()) {
+				Merc* merc = Merc::LoadMercenary(this, &tmpl_it->second, 0, true);
+				if (merc) {
+					SpawnMerc(merc, false);
+				}
 			}
-			Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone Normal Merc for %s.", GetName());
-		}
-		else
-		{
+			Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone Normal Merc (slot %i) for %s.", active_slot, GetName());
+		} else if (first_owned_slot >= 0) {
+			SetMercSlot(static_cast<uint8>(first_owned_slot));
 			int32 TimeDiff = GetMercInfo().SuspendedTime - time(nullptr);
-			if (TimeDiff > 0)
-			{
-				if (!GetPTimers().Enabled(pTimerMercSuspend))
-				{
-					// Start the timer to send the packet that refreshes the Unsuspend Button
+			if (TimeDiff > 0) {
+				if (!GetPTimers().Enabled(pTimerMercSuspend)) {
 					GetPTimers().Start(pTimerMercSuspend, TimeDiff);
 				}
 			}
-			// Send Mercenary Status/Timer packet
 			SendMercTimer(GetMerc());
+			Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone Suspended Merc (slot %i) for %s.", first_owned_slot, GetName());
+		} else {
+			Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone No valid merc slots found for %s.", GetName());
+		}
 
-			Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone Suspended Merc for %s.", GetName());
+		// Send merc personal info for all owned mercs (populates the Manage tab)
+		if (GetNumberOfMercenaries() > 0) {
+			SendMercPersonalInfo();
 		}
 	}
 	else
 	{
-		// No Merc Hired
-		// RoF+ displays a message from the following packet, which seems useless
-		//SendClearMercInfo();
-		Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone Failed to load Merc Info from the Database for %s.", GetName());
+		Log(Logs::General, Logs::Mercenaries, "SpawnMercOnZone No merc info in database for %s.", GetName());
 	}
 }
 
@@ -5306,8 +5346,17 @@ bool Client::DismissMerc(uint32 MercID) {
 		GetMerc()->Depop();
 	}
 
-	SendClearMercInfo();
+	// Clear the dismissed merc's slot data so it becomes available
+	memset(&GetMercInfo(), 0, sizeof(MercInfo));
+
 	SetMerc(nullptr);
+
+	// Update the client with remaining mercs or clear if none left
+	if (GetNumberOfMercenaries() > 0) {
+		SendMercPersonalInfo();
+	} else {
+		SendClearMercInfo();
+	}
 
 	return Dismissed;
 }
@@ -5560,6 +5609,17 @@ uint8 Client::GetNumberOfMercenaries()
 	}
 
 	return count;
+}
+
+int Client::GetFirstFreeMercSlot()
+{
+	int max_slots = std::min(RuleI(Mercs, MaxMercSlots), MAXMERCS);
+	for (int slot_id = 0; slot_id < max_slots; slot_id++) {
+		if (m_mercinfo[slot_id].mercid == 0) {
+			return slot_id;
+		}
+	}
+	return -1;
 }
 
 void Merc::SetMercData( uint32 template_id ) {

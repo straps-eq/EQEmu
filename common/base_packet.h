@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2006 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 
 #include "common/platform/inet.h"
@@ -24,14 +23,26 @@
 
 #include <cstdio>
 
-class BasePacket {
+class BasePacket
+{
+protected:
+	BasePacket() = default;
+	BasePacket(const unsigned char* buf, size_t len);
+	BasePacket(SerializeBuffer&& buf);
+
+	virtual ~BasePacket();
+
 public:
-	unsigned char *pBuffer;
-	uint32 size, _wpos, _rpos;
-	uint32 src_ip,dst_ip;
-	uint16 src_port,dst_port;
-	uint32 priority;
-	timeval timestamp;
+	unsigned char* pBuffer = nullptr;
+	uint32 size = 0;
+	uint32 _wpos = 0;
+	uint32 _rpos = 0;
+	uint32 src_ip = 0;
+	uint32 dst_ip = 0;
+	uint16 src_port = 0;
+	uint16 dst_port = 0;
+	uint32 priority = 0;
+	timeval timestamp{};
 
 	virtual void build_raw_header_dump(char *buffer, uint16 seq=0xffff) const;
 	virtual void build_header_dump(char *buffer) const;
@@ -41,16 +52,17 @@ public:
 
 	void setSrcInfo(uint32 sip, uint16 sport) { src_ip=sip; src_port=sport; }
 	void setDstInfo(uint32 dip, uint16 dport) { dst_ip=dip; dst_port=dport; }
-	void setTimeInfo(uint32 ts_sec, uint32 ts_usec) { timestamp.tv_sec=ts_sec; timestamp.tv_usec=ts_usec; }
+	void setTimeInfo(uint32 ts_sec, uint32 ts_usec) { timestamp.tv_sec = ts_sec; timestamp.tv_usec = ts_usec; }
 	void copyInfo(const BasePacket *p) { src_ip=p->src_ip; src_port=p->src_port; dst_ip=p->dst_ip; dst_port=p->dst_port; timestamp.tv_sec=p->timestamp.tv_sec; timestamp.tv_usec=p->timestamp.tv_usec; }
 
 	inline bool operator<(const BasePacket &rhs) {
-		return (timestamp.tv_sec < rhs.timestamp.tv_sec || (timestamp.tv_sec==rhs.timestamp.tv_sec && timestamp.tv_usec < rhs.timestamp.tv_usec));
+		return (timestamp.tv_sec < rhs.timestamp.tv_sec || (timestamp.tv_sec == rhs.timestamp.tv_sec && timestamp.tv_usec < rhs.timestamp.tv_usec));
 	}
 
 	void WriteUInt8(uint8 value) { *(uint8 *)(pBuffer + _wpos) = value; _wpos += sizeof(uint8); }
 	void WriteUInt32(uint32 value) { *(uint32 *)(pBuffer + _wpos) = value; _wpos += sizeof(uint32); }
 	void WriteUInt64(uint64 value) { *(uint64 *)(pBuffer + _wpos) = value; _wpos += sizeof(uint64); }
+	void WriteSInt16(int32 value) { *(int16*)(pBuffer + _wpos) = value; _wpos += sizeof(int16); }
 	void WriteUInt16(uint32 value) { *(uint16 *)(pBuffer + _wpos) = value; _wpos += sizeof(uint16); }
 	void WriteSInt32(int32 value) { *(int32 *)(pBuffer + _wpos) = value; _wpos += sizeof(int32); }
 	void WriteFloat(float value) { *(float *)(pBuffer + _wpos) = value; _wpos += sizeof(float); }
@@ -62,24 +74,27 @@ public:
 
 	uint8 ReadUInt8() { uint8 value = *(uint8 *)(pBuffer + _rpos); _rpos += sizeof(uint8); return value; }
 	uint8 ReadUInt8(uint32 Offset) const { uint8 value = *(uint8 *)(pBuffer + Offset); return value; }
+	int8 ReadSInt8() { int8 value = *(int8 *)(pBuffer + _rpos); _rpos += sizeof(int8); return value; }
+	int8 ReadSint8(uint32 Offset) const { int8 value = *(int8 *)(pBuffer + Offset); return value; }
 	uint16 ReadUInt16() { uint16 value = *(uint16 *)(pBuffer + _rpos); _rpos += sizeof(uint16); return value; }
 	uint16 ReadUInt16(uint32 Offset) const { uint16 value = *(uint16 *)(pBuffer + Offset); return value; }
+	int16 ReadSInt16() { int16 value = *(int16 *)(pBuffer + _rpos); _rpos += sizeof(int16); return value; }
+	int16 ReadSInt16(uint32 Offset) const { int16 value = *(int16 *)(pBuffer + Offset); return value; }
 	uint32 ReadUInt32() { uint32 value = *(uint32 *)(pBuffer + _rpos); _rpos += sizeof(uint32); return value; }
 	uint32 ReadUInt32(uint32 Offset) const { uint32 value = *(uint32 *)(pBuffer + Offset); return value; }
+	int32 ReadSInt32() { int32 value = *(int32 *)(pBuffer + _rpos); _rpos += sizeof(int32); return value; }
+	int32 ReadSint32(uint32 Offset) const { int32 value = *(int32 *)(pBuffer + Offset); return value; }
+	float ReadFloat() { float value = *(float *)(pBuffer + _rpos); _rpos += sizeof(float); return value; }
+	float ReadFloat(uint32 Offset) const { float value = *(float *)(pBuffer + Offset); return value; }
 	void ReadString(char *str) { uint32 len = static_cast<uint32>(strlen((char *)(pBuffer + _rpos))) + 1; memcpy(str, pBuffer + _rpos, len); _rpos += len; }
 	void ReadString(std::string &str) { str = reinterpret_cast<char *>(pBuffer + _rpos); _rpos += str.length() + 1; }
 	void ReadString(char *str, uint32 Offset, uint32 MaxLength) const;
+	void ReadLengthString(std::string& str) { uint32 len = *(uint32*)(pBuffer + _rpos); _rpos += sizeof(uint32); str.resize(len); memcpy(&str[0], pBuffer + _rpos, len); _rpos += len; }
 
 	uint32 GetWritePosition() { return _wpos; }
 	uint32 GetReadPosition() { return _rpos; }
 	void SetWritePosition(uint32 Newwpos) { _wpos = Newwpos; }
 	void SetReadPosition(uint32 Newrpos) { _rpos = Newrpos; }
-
-protected:
-	virtual ~BasePacket();
-	BasePacket() { pBuffer=nullptr; size=0; _wpos = 0; _rpos = 0; }
-	BasePacket(const unsigned char *buf, const uint32 len);
-	BasePacket(SerializeBuffer &buf);
 };
 
 extern void DumpPacketHex(const BasePacket* app);

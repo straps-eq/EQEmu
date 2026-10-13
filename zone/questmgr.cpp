@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2005 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "common/classes.h"
 #include "common/data_verification.h"
 #include "common/events/player_event_logs.h"
@@ -398,7 +397,7 @@ void QuestManager::incstat(int stat, int value) {
 		initiator->IncStats(stat, value);
 }
 
-void QuestManager::castspell(uint16 spell_id, uint16 target_id)
+void QuestManager::castspell(int32 spell_id, uint16 target_id)
 {
 	QuestManagerCurrentQuestVars();
 
@@ -417,7 +416,7 @@ void QuestManager::castspell(uint16 spell_id, uint16 target_id)
 	}
 }
 
-void QuestManager::selfcast(uint16 spell_id)
+void QuestManager::selfcast(int32 spell_id)
 {
 	QuestManagerCurrentQuestVars();
 
@@ -1243,7 +1242,7 @@ std::string QuestManager::getracename(uint16 race_id) {
 	return GetRaceIDName(race_id);
 }
 
-std::string QuestManager::getspellname(uint32 spell_id) {
+std::string QuestManager::getspellname(int32 spell_id) {
 	if (!IsValidSpell(spell_id)) {
 		return "INVALID SPELL ID IN GETSPELLNAME";
 	}
@@ -2780,18 +2779,7 @@ bool QuestManager::createBot(const char *name, const char *lastname, uint8 level
 		}
 
 		std::string test_name = name;
-		bool available_flag = false;
-		if (!database.botdb.QueryNameAvailability(test_name, available_flag)) {
-			initiator->Message(
-				Chat::White,
-				fmt::format(
-					"Failed to query name availability for '{}'.",
-					test_name
-				).c_str()
-			);
-			return false;
-		}
-
+		bool available_flag = database.botdb.QueryNameAvailability(test_name);
 		if (!available_flag) {
 			initiator->Message(
 				Chat::White,
@@ -4203,7 +4191,7 @@ const int QuestManager::getitemstat(uint32 item_id, std::string stat_identifier)
 	return EQ::InventoryProfile::GetItemStatValue(item_id, stat_identifier);
 }
 
-int QuestManager::getspellstat(uint32 spell_id, std::string stat_identifier, uint8 slot) {
+int QuestManager::getspellstat(int32 spell_id, std::string stat_identifier, uint8 slot) {
 	QuestManagerCurrentQuestVars();
 	return GetSpellStatValue(spell_id, stat_identifier.c_str(), slot);
 }
@@ -4306,7 +4294,7 @@ void QuestManager::CrossZoneSignal(uint8 update_type, int update_identifier, int
 	safe_delete(pack);
 }
 
-void QuestManager::CrossZoneSpell(uint8 update_type, uint8 update_subtype, int update_identifier, uint32 spell_id, const char* client_name) {
+void QuestManager::CrossZoneSpell(uint8 update_type, uint8 update_subtype, int update_identifier, int32 spell_id, const char* client_name) {
 	auto pack = new ServerPacket(ServerOP_CZSpell, sizeof(CZSpell_Struct));
 	CZSpell_Struct* CZS = (CZSpell_Struct*)pack->pBuffer;
 	CZS->update_type = update_type;
@@ -4416,7 +4404,7 @@ void QuestManager::WorldWideSignal(uint8 update_type, int signal_id, uint8 min_s
 	safe_delete(pack);
 }
 
-void QuestManager::WorldWideSpell(uint8 update_type, uint32 spell_id, uint8 min_status, uint8 max_status) {
+void QuestManager::WorldWideSpell(uint8 update_type, int32 spell_id, uint8 min_status, uint8 max_status) {
 	auto pack = new ServerPacket(ServerOP_WWSpell, sizeof(WWSpell_Struct));
 	WWSpell_Struct* WWS = (WWSpell_Struct*)pack->pBuffer;
 	WWS->update_type = update_type;
@@ -4441,7 +4429,7 @@ void QuestManager::WorldWideTaskUpdate(uint8 update_type, uint32 task_identifier
 	safe_delete(pack);
 }
 
-const SPDat_Spell_Struct* QuestManager::getspell(uint32 spell_id) {
+const SPDat_Spell_Struct* QuestManager::getspell(int32 spell_id) {
     if (spells[spell_id].id) {
         return &spells[spell_id];
     }

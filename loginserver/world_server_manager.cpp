@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "world_server_manager.h"
 
 #include "common/eqemu_logsys.h"
@@ -143,7 +160,8 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 		s->SerializeForClientServerList(buf, use_local_ip, client->GetClientVersion());
 	}
 
-	// Append federated servers (synced from federation peers, not directly connected)
+	// Append federated servers (synced from federation peers, not directly connected).
+	// Mirrors WorldServer::SerializeForClientServerList so each client version gets the layout it expects.
 	for (const auto &fs: m_federated_servers) {
 		LogDebug(
 			"CreateServerListPacket | Federated server [{}] IP [{}] players [{}] from node [{}]",
@@ -153,10 +171,12 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 			fs.federation_source_node_id
 		);
 
+		const bool is_tob = client->GetClientVersion() == cv_tob;
+
 		buf.WriteString(fs.remote_ip);
 
-		if (client->GetClientVersion() == cv_larion) {
-			buf.WriteUInt32(9000);
+		if (is_tob) {
+			buf.WriteInt32(9000); // port, not currently settable in eqemu but needed for compat
 		}
 
 		switch (fs.server_list_type_id) {
@@ -171,16 +191,22 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 				break;
 		}
 
-		if (client->GetClientVersion() == cv_larion) {
-			buf.WriteUInt32(1);
-			buf.WriteUInt32(fs.id);
-		} else {
-			buf.WriteUInt32(fs.id);
+		if (is_tob) {
+			buf.WriteInt32(289);
 		}
 
+		buf.WriteUInt32(fs.id);
 		buf.WriteString(fs.long_name);
-		buf.WriteString("us");
-		buf.WriteString("en");
+
+		if (is_tob) {
+			buf.WriteString("US");
+			buf.WriteString("EN");
+			buf.WriteString("Standard");
+			buf.WriteString("This server has no description set currently.");
+		} else {
+			buf.WriteString("us");
+			buf.WriteString("en");
+		}
 
 		if (fs.server_status < 0) {
 			buf.WriteInt32(fs.zones_booted == 0 ? LS::ServerStatusFlags::Down : LS::ServerStatusFlags::Locked);
@@ -189,9 +215,14 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 		}
 
 		buf.WriteUInt32(fs.players_online);
+
+		if (is_tob) {
+			buf.WriteInt32(31); // expansions
+			buf.WriteInt32(0);  // truebox
+		}
 	}
 
-	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, buf);
+	return std::make_unique<EQApplicationPacket>(OP_ServerListResponse, std::move(buf));
 }
 
 void WorldServerManager::SendUserLoginToWorldRequest(

@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #ifndef RULE_CATEGORY
 #define RULE_CATEGORY(name)
 #endif
@@ -256,6 +255,7 @@ RULE_BOOL(Mercs, AllowMercSuspendInCombat, true, "Allow merc suspend in combat")
 RULE_BOOL(Mercs, MercsIgnoreLevelBasedHasteCaps, false, "Ignores hard coded level based haste caps.")
 RULE_INT(Mercs, MercsHasteCap, 100, "Haste cap for non-v3(over haste) haste")
 RULE_INT(Mercs, MercsHastev3Cap, 25, "Haste cap for v3(over haste) haste")
+RULE_INT(Mercs, MaxMercSlots, 6, "Maximum number of mercenary slots per character (max = MAXMERCS)")
 RULE_CATEGORY_END()
 
 RULE_CATEGORY(Guild)
@@ -350,11 +350,12 @@ RULE_STRING(World, MOTD, "", "Server MOTD sent on login, change from empty to ha
 RULE_STRING(World, Rules, "", "Server Rules, change from empty to have this be used instead of variables table 'rules' value, lines are pipe (|) separated, example: A|B|C")
 RULE_BOOL(World, EnableAutoLogin, false, "Enables or disables auto login of characters, allowing people to log characters in directly from loginserver to ingame")
 RULE_BOOL(World, EnablePVPRegions, true, "Enables or disables PVP Regions automatically setting your PVP flag")
-RULE_STRING(World, SupportedClients, "RoF2", "Comma-delimited list of clients to restrict to. Supported values are Titanium | SoF | SoD | UF | RoF | RoF2. Example: Titanium,RoF2")
+RULE_STRING(World, SupportedClients, "RoF2,TOB", "Comma-delimited list of clients to restrict to. Supported values are Titanium | SoF | SoD | UF | RoF | RoF2 | TOB. Example: Titanium,RoF2,TOB")
 RULE_STRING(World, CustomFilesKey, "", "Enable if the server requires custom files and sends a key to validate. Empty string to disable. Example: eqcustom_v1")
 RULE_STRING(World, CustomFilesUrl, "github.com/knervous/eqnexus/releases", "URL to display at character select if client is missing custom files")
 RULE_INT(World, CustomFilesAdminLevel, 20, "Admin level at which custom file key is not required when CustomFilesKey is specified")
 RULE_BOOL(World, RealTimeCalculateGuilds, false, "(Temp feature flag) If true, guilds will be calculated in real time instead of at zone boot. This is a performance hit but allows for more dynamic guilds.")
+RULE_INT(World, Id, 100, "Used by later clients to create GUIDs, expected to be Unique to the world but ultimately not that important")
 RULE_CATEGORY_END()
 
 RULE_CATEGORY(Zone)

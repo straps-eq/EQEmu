@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "common/emu_versions.h"
 #include "common/emu_constants.h"
 
@@ -56,6 +54,8 @@ const char* EQ::versions::ClientVersionName(ClientVersion client_version)
 		return "RoF";
 	case ClientVersion::RoF2:
 		return "RoF2";
+	case ClientVersion::TOB:
+		return "TOB";
 	default:
 		return "Invalid Version";
 	};
@@ -76,6 +76,8 @@ uint32 EQ::versions::ConvertClientVersionToClientVersionBit(ClientVersion client
 		return bitRoF;
 	case ClientVersion::RoF2:
 		return bitRoF2;
+	case ClientVersion::TOB:
+		return bitTOB;
 	default:
 		return bitUnknown;
 	}
@@ -96,6 +98,8 @@ EQ::versions::ClientVersion EQ::versions::ConvertClientVersionBitToClientVersion
 		return ClientVersion::RoF;
 	case ((uint32)1 << (static_cast<unsigned int>(ClientVersion::RoF2) - 1)) :
 		return ClientVersion::RoF2;
+	case ((uint32)1 << (static_cast<unsigned int>(ClientVersion::TOB) - 1)) :
+		return ClientVersion::TOB;
 	default:
 		return ClientVersion::Unknown;
 	}
@@ -184,6 +188,8 @@ const char* EQ::versions::MobVersionName(MobVersion mob_version)
 		return "RoF";
 	case MobVersion::RoF2:
 		return "RoF2";
+	case MobVersion::TOB:
+		return "TOB";
 	case MobVersion::NPC:
 		return "NPC";
 	case MobVersion::NPCMerchant:
@@ -212,6 +218,8 @@ const char* EQ::versions::MobVersionName(MobVersion mob_version)
 		return "Offline RoF";
 	case MobVersion::OfflineRoF2:
 		return "Offline RoF2";
+	case MobVersion::OfflineTOB:
+		return "Offline TOB";
 	default:
 		return "Invalid Version";
 	};
@@ -235,6 +243,8 @@ EQ::versions::ClientVersion EQ::versions::ConvertMobVersionToClientVersion(MobVe
 		return ClientVersion::RoF;
 	case MobVersion::RoF2:
 		return ClientVersion::RoF2;
+	case MobVersion::TOB:
+		return ClientVersion::TOB;
 	default:
 		return ClientVersion::Unknown;
 	}
@@ -258,6 +268,8 @@ EQ::versions::MobVersion EQ::versions::ConvertClientVersionToMobVersion(ClientVe
 		return MobVersion::RoF;
 	case ClientVersion::RoF2:
 		return MobVersion::RoF2;
+	case ClientVersion::TOB:
+		return MobVersion::TOB;
 	default:
 		return MobVersion::Unknown;
 	}
@@ -278,6 +290,8 @@ EQ::versions::MobVersion EQ::versions::ConvertPCMobVersionToOfflinePCMobVersion(
 		return MobVersion::OfflineRoF;
 	case MobVersion::RoF2:
 		return MobVersion::OfflineRoF2;
+		case MobVersion::TOB:
+		return MobVersion::OfflineTOB;
 	default:
 		return MobVersion::Unknown;
 	}
@@ -298,6 +312,8 @@ EQ::versions::MobVersion EQ::versions::ConvertOfflinePCMobVersionToPCMobVersion(
 		return MobVersion::RoF;
 	case MobVersion::OfflineRoF2:
 		return MobVersion::RoF2;
+	case MobVersion::OfflineTOB:
+		return MobVersion::TOB;
 	default:
 		return MobVersion::Unknown;
 	}
@@ -318,6 +334,8 @@ EQ::versions::ClientVersion EQ::versions::ConvertOfflinePCMobVersionToClientVers
 		return ClientVersion::RoF;
 	case MobVersion::OfflineRoF2:
 		return ClientVersion::RoF2;
+	case MobVersion::OfflineTOB:
+		return ClientVersion::TOB;
 	default:
 		return ClientVersion::Unknown;
 	}
@@ -338,6 +356,8 @@ EQ::versions::MobVersion EQ::versions::ConvertClientVersionToOfflinePCMobVersion
 		return MobVersion::OfflineRoF;
 	case ClientVersion::RoF2:
 		return MobVersion::OfflineRoF2;
+	case ClientVersion::TOB:
+		return MobVersion::OfflineTOB;
 	default:
 		return MobVersion::Unknown;
 	}
@@ -388,6 +408,28 @@ const char* EQ::expansions::ExpansionName(Expansion expansion)
 		return "Rain of Fear";
 	case Expansion::CotF:
 		return "Call of the Forsaken";
+	case Expansion::TDS:
+		return "The Darkened Sea";
+	case Expansion::TBM:
+		return "The Broken Mirror";
+	case Expansion::EoK:
+		return "Empires of Kunark";
+	case Expansion::RoS:
+		return "Ring of Scale";
+	case Expansion::TBL:
+		return "The Burning Lands";
+	case Expansion::ToV:
+		return "Torment of Velious";
+	case Expansion::CoV:
+		return "Claws of Veeshan";
+	case Expansion::ToL:
+		return "Terror of Luclin";
+	case Expansion::NoS:
+		return "Night of Shadows";
+	case Expansion::LS:
+		return "Laurion's Song";
+	case Expansion::TOB:
+		return "The Outer Brood";
 	default:
 		return "Invalid Expansion";
 	}
@@ -441,6 +483,29 @@ uint32 EQ::expansions::ConvertExpansionToExpansionBit(Expansion expansion)
 		return bitRoF;
 	case Expansion::CotF:
 		return bitCotF;
+	case Expansion::TDS:
+		return bitTDS;
+	case Expansion::TBM:
+		return bitTBM;
+	case Expansion::EoK:
+		return bitEoK;
+	case Expansion::RoS:
+		return bitRoS;
+	case Expansion::TBL:
+		return bitTBL;
+	case Expansion::ToV:
+		return bitToV;
+	case Expansion::CoV:
+		return bitCoV;
+	case Expansion::ToL:
+		return bitToL;
+	case Expansion::NoS:
+		return bitNoS;
+	case Expansion::LS:
+		return bitLS;
+	case Expansion::TOB:
+		return bitTOB;
+
 	default:
 		return bitEverQuest;
 	}
@@ -489,6 +554,28 @@ EQ::expansions::Expansion EQ::expansions::ConvertExpansionBitToExpansion(uint32 
 		return Expansion::RoF;
 	case bitCotF:
 		return Expansion::CotF;
+	case bitTDS:
+		return Expansion::TDS;
+	case bitTBM:
+		return Expansion::TBM;
+	case bitEoK:
+		return Expansion::EoK;
+	case bitRoS:
+		return Expansion::RoS;
+	case bitTBL:
+		return Expansion::TBL;
+	case bitToV:
+		return Expansion::ToV;
+	case bitCoV:
+		return Expansion::CoV;
+	case bitToL:
+		return Expansion::ToL;
+	case bitNoS:
+		return Expansion::NoS;
+	case bitLS:
+		return Expansion::LS;
+	case bitTOB:
+		return Expansion::TOB;
 	default:
 		return Expansion::EverQuest;
 	}
@@ -537,6 +624,28 @@ uint32 EQ::expansions::ConvertExpansionToExpansionsMask(Expansion expansion)
 		return maskRoF;
 	case Expansion::CotF:
 		return maskCotF;
+	case Expansion::TDS:
+		return maskTDS;
+	case Expansion::TBM:
+		return maskTBM;
+	case Expansion::EoK:
+		return maskEoK;
+	case Expansion::RoS:
+		return maskRoS;
+	case Expansion::TBL:
+		return maskTBL;
+	case Expansion::ToV:
+		return maskToV;
+	case Expansion::CoV:
+		return maskCoV;
+	case Expansion::ToL:
+		return maskToL;
+	case Expansion::NoS:
+		return maskNoS;
+	case Expansion::LS:
+		return maskLS;
+	case Expansion::TOB:
+		return maskTOB;
 	default:
 		return maskEverQuest;
 	}

@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_packet.h"
@@ -62,6 +79,16 @@ Lua_Packet::Lua_Packet(const Lua_Packet& o) {
 	} else {
 		owned_ = false;
 		d_ = o.d_;
+	}
+}
+
+Lua_Packet::~Lua_Packet()
+{
+	if (owned_) {
+		EQApplicationPacket* ptr = GetLuaPtrData();
+		if (ptr) {
+			delete ptr;
+		}
 	}
 }
 
@@ -513,7 +540,8 @@ luabind::scope lua_register_packet_opcodes() {
 		luabind::value("Camp", static_cast<int>(OP_Camp)),
 		luabind::value("YellForHelp", static_cast<int>(OP_YellForHelp)),
 		luabind::value("SafePoint", static_cast<int>(OP_SafePoint)),
-		luabind::value("Buff", static_cast<int>(OP_Buff)),
+		luabind::value("Buff", static_cast<int>(OP_BuffDefinition)),
+		luabind::value("BuffDefinition", static_cast<int>(OP_BuffDefinition)),
 		luabind::value("ColoredText", static_cast<int>(OP_ColoredText)),
 		luabind::value("SpecialMesg", static_cast<int>(OP_SpecialMesg)),
 		luabind::value("Consent", static_cast<int>(OP_Consent)),
@@ -676,8 +704,6 @@ luabind::scope lua_register_packet_opcodes() {
 		luabind::value("ShopEndConfirm", static_cast<int>(OP_ShopEndConfirm)),
 		luabind::value("AdventureMerchantRequest", static_cast<int>(OP_AdventureMerchantRequest)),
 		luabind::value("Sound", static_cast<int>(OP_Sound)),
-		luabind::value("0x0193", static_cast<int>(OP_0x0193)),
-		luabind::value("0x0347", static_cast<int>(OP_0x0347)),
 		luabind::value("WorldComplete", static_cast<int>(OP_WorldComplete)),
 		luabind::value("MobRename", static_cast<int>(OP_MobRename)),
 		luabind::value("TaskDescription", static_cast<int>(OP_TaskDescription)),
@@ -783,7 +809,8 @@ luabind::scope lua_register_packet_opcodes() {
 		luabind::value("CancelTask", static_cast<int>(OP_CancelTask)),
 		luabind::value("TaskHistoryRequest", static_cast<int>(OP_TaskHistoryRequest)),
 		luabind::value("TaskHistoryReply", static_cast<int>(OP_TaskHistoryReply)),
-		luabind::value("PetBuffWindow", static_cast<int>(OP_PetBuffWindow)),
+		luabind::value("PetBuffWindow", static_cast<int>(OP_RefreshPetBuffs)),
+		luabind::value("RefreshPetBuffs", static_cast<int>(OP_RefreshPetBuffs)),
 		luabind::value("RaidJoin", static_cast<int>(OP_RaidJoin)),
 		luabind::value("Translocate", static_cast<int>(OP_Translocate)),
 		luabind::value("Sacrifice", static_cast<int>(OP_Sacrifice)),
@@ -843,7 +870,8 @@ luabind::scope lua_register_packet_opcodes() {
 		luabind::value("GroupRoles", static_cast<int>(OP_GroupRoles)),
 		luabind::value("SendFindableNPCs", static_cast<int>(OP_SendFindableNPCs)),
 		luabind::value("HideCorpse", static_cast<int>(OP_HideCorpse)),
-		luabind::value("TargetBuffs", static_cast<int>(OP_TargetBuffs)),
+		luabind::value("TargetBuffs", static_cast<int>(OP_RefreshTargetBuffs)),
+		luabind::value("RefreshTargetBuffs", static_cast<int>(OP_RefreshTargetBuffs)),
 		luabind::value("TradeBusy", static_cast<int>(OP_TradeBusy)),
 		luabind::value("GuildUpdate", static_cast<int>(OP_GuildUpdate)),
 		luabind::value("CameraEffect", static_cast<int>(OP_CameraEffect)),
@@ -867,7 +895,8 @@ luabind::scope lua_register_packet_opcodes() {
 		luabind::value("DzCompass", static_cast<int>(OP_DzCompass)),
 		luabind::value("DzChooseZone", static_cast<int>(OP_DzChooseZone)),
 		luabind::value("DzChooseZoneReply", static_cast<int>(OP_DzChooseZoneReply)),
-		luabind::value("BuffCreate", static_cast<int>(OP_BuffCreate)),
+		luabind::value("BuffCreate", static_cast<int>(OP_RefreshBuffs)),
+		luabind::value("RefreshBuffs", static_cast<int>(OP_RefreshBuffs)),
 		luabind::value("GuildStatus", static_cast<int>(OP_GuildStatus)),
 		luabind::value("BuffRemoveRequest", static_cast<int>(OP_BuffRemoveRequest)),
 		luabind::value("CorpseDrag", static_cast<int>(OP_CorpseDrag)),

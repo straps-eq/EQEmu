@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 
 #include "common/skills.h"
@@ -761,6 +759,46 @@ typedef enum {
 	FilterStrikethrough = 26,	//0=show, 1=hide // RoF2 Confirmed
 	FilterStuns = 27,			//0=show, 1=hide // RoF2 Confirmed
 	FilterBardSongsOnPets = 28,	//0=show, 1=hide // RoF2 Confirmed
+	FilterSwarmPetDeath = 29,
+	FilterFellowshipChat = 30,
+	FilterMercenaryMessages = 31,
+	FilterSpam = 32,
+	FilterAchievements = 33,
+	FilterPvPMessages = 34,
+	FilterSpellNameInCast = 35,
+	FilterRandomMine = 36,
+	FilterRandomGroupRaid = 37,
+	FilterRandomOthers = 38,
+	FilterEnvironmentalDamage = 39,
+	FilterMessages = 40,
+	FilterOverwriteDetrimental = 41,
+	FilterOverwriteBeneficial = 42,
+	FilterCantUseCommand = 43,
+	FilterCombatAbilityReuse = 44,
+	FilterAAAbilityReuse = 45,
+	FilterProcBeginCasting = 46,
+	FilterDestroyedItems = 47,
+	FilterYourAuras = 48,
+	FilterOtherAuras = 49,
+	FilterYourHeals = 50,
+	FilterOtherHeals = 51,
+	FilterYourDoTs = 52,
+	FilterOtherDoTs = 53,
+	FilterOtherDirectDamage = 54,
+	FilterSpellEmotes = 55,
+	FilterFactionMessages = 56,
+	FilterTauntMessages = 57,
+	FilterYourDisciplines = 58,
+	FilterOtherDisplines = 59,
+	FilterAchievementsOthers = 60,
+	FilterRaidVictory = 61,
+	FilterOtherDirectDamageCrits = 62,
+	FilterDoTYoursCritical = 63,
+	FilterDoTOthersCritical = 64,
+	FilterDoTDamageTaken = 65,
+	FilterHealsReceived = 66,
+	FilterHealsYoursCritical = 67,
+	FilterHealsOthersCritical = 68,
 	_FilterCount
 } eqFilterType;
 

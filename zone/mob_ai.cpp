@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2004 EQEMu Development Team (http://eqemu.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "mob.h"
 
 #include "common/data_verification.h"
@@ -2380,7 +2379,7 @@ void NPC::CheckSignal() {
 	}
 }
 
-bool IsSpellInList(DBnpcspells_Struct* spell_list, uint16 iSpellID);
+bool IsSpellInList(DBnpcspells_Struct* spell_list, int32 iSpellID);
 bool IsSpellEffectInList(DBnpcspellseffects_Struct* spelleffect_list, uint16 iSpellEffectID, int32 base_value, int32 limit, int32 max_value);
 
 bool NPC::AI_AddNPCSpells(uint32 iDBSpellsID) {
@@ -2679,14 +2678,14 @@ bool IsSpellEffectInList(DBnpcspellseffects_Struct* spelleffect_list, uint16 iSp
 	return false;
 }
 
-bool IsSpellInList(DBnpcspells_Struct* spell_list, uint16 iSpellID) {
+bool IsSpellInList(DBnpcspells_Struct* spell_list, int32 iSpellID) {
 	auto it = std::find_if(spell_list->entries.begin(), spell_list->entries.end(),
 			       [iSpellID](const DBnpcspells_entries_Struct &a) { return a.spellid == iSpellID; });
 	return it != spell_list->entries.end();
 }
 
 // adds a spell to the list, taking into account priority and resorting list as needed.
-void NPC::AddSpellToNPCList(int16 iPriority, uint16 iSpellID, uint32 iType,
+void NPC::AddSpellToNPCList(int16 iPriority, int32 iSpellID, uint32 iType,
 							int16 iManaCost, int32 iRecastDelay, int16 iResistAdjust, int8 min_hp, int8 max_hp)
 {
 
@@ -2713,7 +2712,7 @@ void NPC::AddSpellToNPCList(int16 iPriority, uint16 iSpellID, uint32 iType,
 		AIautocastspell_timer->Start(RandomTimer(0, 300), false);
 }
 
-void NPC::RemoveSpellFromNPCList(uint16 spell_id)
+void NPC::RemoveSpellFromNPCList(int32 spell_id)
 {
 	auto iter = AIspells.begin();
 	while(iter != AIspells.end())

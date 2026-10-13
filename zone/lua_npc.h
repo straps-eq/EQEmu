@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #ifdef LUA_EQEMU
@@ -166,8 +183,8 @@ public:
 	void SetLDoNTrapped(bool is_trapped);
 	uint8 GetLDoNTrapType();
 	void SetLDoNTrapType(uint8 trap_type);
-	uint16 GetLDoNTrapSpellID();
-	void SetLDoNTrapSpellID(uint16 spell_id);
+	int32 GetLDoNTrapSpellID();
+	void SetLDoNTrapSpellID(int32 spell_id);
 	bool IsLDoNLocked();
 	void SetLDoNLocked(bool is_locked);
 	uint16 GetLDoNLockedSkill();

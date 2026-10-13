@@ -1,0 +1,26 @@
+struct MembershipEntry
+{
+    u32 purchase_id;
+    u32 bitwise_entry;
+};
+
+struct MembershipSetting 
+{
+    s8 setting_index;
+    s32 setting_id;       // 0 to 23 actually seen but the OP_Membership packet has up to 32
+    s32 setting_value; 
+};
+
+struct Membership
+{
+    u32 membership_setting_count;
+    MembershipSetting membership_settings[membership_setting_count];
+    u32 race_entry_count;
+    MembershipEntry membership_races[race_entry_count];
+    u32 class_entry_count;
+    MembershipEntry membership_classes[class_entry_count];
+    u32 exit_url_length;
+    char exit_url[exit_url_length];
+};
+
+Membership m @ 0x00;

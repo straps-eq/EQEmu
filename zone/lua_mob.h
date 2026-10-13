@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #ifdef LUA_EQEMU
@@ -92,8 +109,8 @@ public:
 	uint8 GetInvisibleUndeadLevel();
 	void SetSeeInvisibleLevel(uint8 invisible_level);
 	void SetSeeInvisibleUndeadLevel(uint8 invisible_level);
-	bool FindBuff(uint16 spell_id);
-	bool FindBuff(uint16 spell_id, uint16 caster_id);
+	bool FindBuff(int32 spell_id);
+	bool FindBuff(int32 spell_id, uint16 caster_id);
 	uint16 FindBuffBySlot(int slot);
 	uint32 BuffCount();
 	uint32 BuffCount(bool is_beneficial);
@@ -474,7 +491,7 @@ public:
 	bool TryFinishingBlow(Lua_Mob defender, int64 &damage);
 	int GetBodyType();
 	int GetOrigBodyType();
-	void CheckNumHitsRemaining(int type, int32 buff_slot, uint16 spell_id);
+	void CheckNumHitsRemaining(int type, int32 buff_slot, int32 spell_id);
 	void DeleteBucket(std::string bucket_name);
 	std::string GetBucket(std::string bucket_name);
 	std::string GetBucketExpires(std::string bucket_name);
@@ -535,18 +552,18 @@ public:
 	float GetDefaultRaceSize();
 	float GetDefaultRaceSize(int race_id);
 	float GetDefaultRaceSize(int race_id, int gender_id);
-	int64 GetActDoTDamage(uint16 spell_id, int64 value, Lua_Mob target);
-	int64 GetActDoTDamage(uint16 spell_id, int64 value, Lua_Mob target, bool from_buff_tic);
-	int64 GetActReflectedSpellDamage(uint16 spell_id, int64 value, int effectiveness);
-	int GetActSpellCasttime(uint16 spell_id, uint32 cast_time);
-	int GetActSpellCost(uint16 spell_id, int cost);
-	int64 GetActSpellDamage(uint16 spell_id, int64 value);
-	int64 GetActSpellDamage(uint16 spell_id, int64 value, Lua_Mob target);
-	int GetActSpellDuration(uint16 spell_id, int duration);
-	int64 GetActSpellHealing(uint16 spell_id, int64 value);
-	int64 GetActSpellHealing(uint16 spell_id, int64 value, Lua_Mob target);
-	int64 GetActSpellHealing(uint16 spell_id, int64 value, Lua_Mob target, bool from_buff_tic);
-	float GetActSpellRange(uint16 spell_id, float range);
+	int64 GetActDoTDamage(int32 spell_id, int64 value, Lua_Mob target);
+	int64 GetActDoTDamage(int32 spell_id, int64 value, Lua_Mob target, bool from_buff_tic);
+	int64 GetActReflectedSpellDamage(int32 spell_id, int64 value, int effectiveness);
+	int GetActSpellCasttime(int32 spell_id, uint32 cast_time);
+	int GetActSpellCost(int32 spell_id, int cost);
+	int64 GetActSpellDamage(int32 spell_id, int64 value);
+	int64 GetActSpellDamage(int32 spell_id, int64 value, Lua_Mob target);
+	int GetActSpellDuration(int32 spell_id, int duration);
+	int64 GetActSpellHealing(int32 spell_id, int64 value);
+	int64 GetActSpellHealing(int32 spell_id, int64 value, Lua_Mob target);
+	int64 GetActSpellHealing(int32 spell_id, int64 value, Lua_Mob target, bool from_buff_tic);
+	float GetActSpellRange(int32 spell_id, float range);
 	uint32 GetRemainingTimeMS(const char* timer_name);
 	uint32 GetTimerDurationMS(const char* timer_name);
 	bool HasTimer(const char* timer_name);
@@ -602,12 +619,12 @@ public:
 	void AreaAttack(float distance, int16 slot_id, int count);
 	void AreaAttack(float distance, int16 slot_id, int count, bool is_from_spell);
 	void AreaAttack(float distance, int16 slot_id, int count, bool is_from_spell, int attack_rounds);
-	void AreaSpell(Lua_Mob center, uint16 spell_id);
-	void AreaSpell(Lua_Mob center, uint16 spell_id, bool affect_caster);
-	void AreaSpell(Lua_Mob center, uint16 spell_id, bool affect_caster, int16 resist_adjust);
-	void AreaSpell(Lua_Mob center, uint16 spell_id, bool affect_caster, int16 resist_adjust, int max_targets);
-	void MassGroupBuff(Lua_Mob center, uint16 spell_id);
-	void MassGroupBuff(Lua_Mob center, uint16 spell_id, bool affect_caster);
+	void AreaSpell(Lua_Mob center, int32 spell_id);
+	void AreaSpell(Lua_Mob center, int32 spell_id, bool affect_caster);
+	void AreaSpell(Lua_Mob center, int32 spell_id, bool affect_caster, int16 resist_adjust);
+	void AreaSpell(Lua_Mob center, int32 spell_id, bool affect_caster, int16 resist_adjust, int max_targets);
+	void MassGroupBuff(Lua_Mob center, int32 spell_id);
+	void MassGroupBuff(Lua_Mob center, int32 spell_id, bool affect_caster);
 	void BuffFadeBeneficial();
 	void BuffFadeDetrimental();
 	void BuffFadeDetrimentalByCaster(Lua_Mob caster);

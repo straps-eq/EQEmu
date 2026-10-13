@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_zone.h"
@@ -607,7 +624,7 @@ bool Lua_Zone::IsSpecialBindLocation(float x, float y, float z, float heading)
 	return self->IsSpecialBindLocation(glm::vec4(x, y, z, heading));
 }
 
-bool Lua_Zone::IsSpellBlocked(uint32 spell_id, float x, float y, float z)
+bool Lua_Zone::IsSpellBlocked(int32 spell_id, float x, float y, float z)
 {
 	Lua_Safe_Call_Bool();
 	return self->IsSpellBlocked(spell_id, glm::vec3(x, y, z));

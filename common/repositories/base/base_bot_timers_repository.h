@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -25,7 +42,7 @@ public:
 		uint32_t recast_time;
 		uint8_t  is_spell;
 		uint8_t  is_disc;
-		uint32_t spell_id;
+		int32_t  spell_id;
 		uint8_t  is_item;
 		uint32_t item_id;
 	};
@@ -153,7 +170,7 @@ public:
 			e.recast_time = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.is_spell    = row[4] ? static_cast<uint8_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.is_disc     = row[5] ? static_cast<uint8_t>(strtoul(row[5], nullptr, 10)) : 0;
-			e.spell_id    = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
+			e.spell_id    = row[6] ? static_cast<int32_t>(atoi(row[6])) : 0;
 			e.is_item     = row[7] ? static_cast<uint8_t>(strtoul(row[7], nullptr, 10)) : 0;
 			e.item_id     = row[8] ? static_cast<uint32_t>(strtoul(row[8], nullptr, 10)) : 0;
 
@@ -305,7 +322,7 @@ public:
 			e.recast_time = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.is_spell    = row[4] ? static_cast<uint8_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.is_disc     = row[5] ? static_cast<uint8_t>(strtoul(row[5], nullptr, 10)) : 0;
-			e.spell_id    = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
+			e.spell_id    = row[6] ? static_cast<int32_t>(atoi(row[6])) : 0;
 			e.is_item     = row[7] ? static_cast<uint8_t>(strtoul(row[7], nullptr, 10)) : 0;
 			e.item_id     = row[8] ? static_cast<uint32_t>(strtoul(row[8], nullptr, 10)) : 0;
 
@@ -338,7 +355,7 @@ public:
 			e.recast_time = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.is_spell    = row[4] ? static_cast<uint8_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.is_disc     = row[5] ? static_cast<uint8_t>(strtoul(row[5], nullptr, 10)) : 0;
-			e.spell_id    = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
+			e.spell_id    = row[6] ? static_cast<int32_t>(atoi(row[6])) : 0;
 			e.is_item     = row[7] ? static_cast<uint8_t>(strtoul(row[7], nullptr, 10)) : 0;
 			e.item_id     = row[8] ? static_cast<uint32_t>(strtoul(row[8], nullptr, 10)) : 0;
 

@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 
 #include "common/types.h"
@@ -34,7 +32,8 @@ namespace EQ
 			SoD,		// Build: 'Dec 19 2008 15:22:49'
 			UF,			// Build: 'Jun  8 2010 16:44:32'
 			RoF,		// Build: 'Dec 10 2012 17:35:44'
-			RoF2		// Build: 'May 10 2013 23:30:08'
+			RoF2,		// Build: 'May 10 2013 23:30:08'
+			TOB         // Build: 'Sep 11 2025 11:54:10'
 		};
 
 		enum ClientVersionBitmask : uint32 {
@@ -46,6 +45,7 @@ namespace EQ
 			bitUF = 0x00000010,
 			bitRoF = 0x00000020,
 			bitRoF2 = 0x00000040,
+			bitTOB = 0x00000080,
 			maskUnknown = 0x00000000,
 			maskTitaniumAndEarlier = 0x00000003,
 			maskSoFAndEarlier = 0x00000007,
@@ -57,11 +57,12 @@ namespace EQ
 			maskUFAndLater = 0xFFFFFFF0,
 			maskRoFAndLater = 0xFFFFFFE0,
 			maskRoF2AndLater = 0xFFFFFFC0,
+			maskTOBAndLater = 0xFFFFFF80,
 			maskAllClients = 0xFFFFFFFF
 		};
 
-		const ClientVersion LastClientVersion = ClientVersion::RoF2;
-		const size_t ClientVersionCount = (static_cast<size_t>(LastClientVersion) + 1);
+		inline constexpr ClientVersion LastClientVersion = ClientVersion::TOB;
+		inline constexpr size_t ClientVersionCount = (static_cast<size_t>(LastClientVersion) + 1);
 
 		bool IsValidClientVersion(ClientVersion client_version);
 		ClientVersion ValidateClientVersion(ClientVersion client_version);
@@ -78,6 +79,7 @@ namespace EQ
 			UF,
 			RoF,
 			RoF2,
+			TOB,
 			NPC,
 			NPCMerchant,
 			Merc,
@@ -91,13 +93,14 @@ namespace EQ
 			OfflineSoD,
 			OfflineUF,
 			OfflineRoF,
-			OfflineRoF2
+			OfflineRoF2,
+			OfflineTOB
 		};
 
-		const MobVersion LastMobVersion = MobVersion::OfflineRoF2;
-		const MobVersion LastPCMobVersion = MobVersion::RoF2;
+		const MobVersion LastMobVersion = MobVersion::OfflineTOB;
+		const MobVersion LastPCMobVersion = MobVersion::TOB;
 		const MobVersion LastNonPCMobVersion = MobVersion::BotPet;
-		const MobVersion LastOfflinePCMobVersion = MobVersion::OfflineRoF2;
+		const MobVersion LastOfflinePCMobVersion = MobVersion::OfflineTOB;
 		const size_t MobVersionCount = (static_cast<size_t>(LastMobVersion) + 1);
 
 		bool IsValidMobVersion(MobVersion mob_version);
@@ -129,7 +132,8 @@ namespace EQ
 			ucsSoDCombined = 'D',
 			ucsUFCombined = 'E',
 			ucsRoFCombined = 'F',
-			ucsRoF2Combined = 'G'
+			ucsRoF2Combined = 'G',
+			ucsTOBCombined = 'H'
 		};
 
 	} /*versions*/
@@ -156,7 +160,18 @@ namespace EQ
 			HoT,
 			VoA,
 			RoF,
-			CotF
+			CotF,
+			TDS,
+			TBM,
+			EoK,
+			RoS,
+			TBL,
+			ToV,
+			CoV,
+			ToL,
+			NoS,
+			LS,
+			TOB
 		};
 
 		enum ExpansionBitmask : uint32 {
@@ -181,6 +196,17 @@ namespace EQ
 			bitVoA = 0x00020000,
 			bitRoF = 0x00040000,
 			bitCotF = 0x00080000,
+			bitTDS = 0x00100000,
+			bitTBM = 0x00200000,
+			bitEoK = 0x00400000,
+			bitRoS = 0x00800000,
+			bitTBL = 0x01000000,
+			bitToV = 0x02000000,
+			bitCoV = 0x04000000,
+			bitToL = 0x08000000,
+			bitNoS = 0x10000000,
+			bitLS = 0x20000000,
+			bitTOB = 0x40000000,
 			maskEverQuest = 0x00000000,
 			maskRoK = 0x00000001,
 			maskSoV = 0x00000003,
@@ -201,7 +227,18 @@ namespace EQ
 			maskHoT = 0x0001FFFF,
 			maskVoA = 0x0003FFFF,
 			maskRoF = 0x0007FFFF,
-			maskCotF = 0x000FFFFF
+			maskCotF = 0x000FFFFF,
+			maskTDS = 0x001FFFFF,
+			maskTBM = 0x003FFFFF,
+			maskEoK = 0x007FFFFF,
+			maskRoS = 0x00FFFFFF,
+			maskTBL = 0x01FFFFFF,
+			maskToV = 0x03FFFFFF,
+			maskCoV = 0x07FFFFFF,
+			maskToL = 0x0FFFFFFF,
+			maskNoS = 0x1FFFFFFF,
+			maskLS = 0x3FFFFFFF,
+			maskTOB = 0x7FFFFFFF,
 		};
 
 		const char* ExpansionName(Expansion expansion);

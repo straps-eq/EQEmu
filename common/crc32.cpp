@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "crc32.h"
 
 #include <cassert>
@@ -82,6 +99,24 @@ uint32 CRC32::GenerateNoFlip(const uint8* buf, uint32 bufsize) {
 	return Update(buf, bufsize);
 }
 
+unsigned long CRC32::GetEQChecksum(uchar* in_data, uint32 in_length, uint32 start_at)
+{
+	unsigned long data;
+	unsigned long check = 0xffffffff;
+
+	for (uint32 i = start_at; i < in_length; i++)
+	{
+		data = in_data[i];
+		data = data ^ (check);
+		data = data & 0x000000ff;
+		check = check >> 8;
+		data = CRC32Table[data];
+		check = check ^ data;
+	}
+
+	return check;
+}
+
 void CRC32::SetEQChecksum(uchar* in_data, uint32 in_length, uint32 start_at)
 {
 	unsigned long data;
@@ -108,6 +143,6 @@ uint32 CRC32::Update(const uint8* buf, uint32 bufsize, uint32 crc32var) {
 	return crc32var;
 }
 
-inline void CRC32::Calc(const uint8 byte, uint32& crc32var) {
+void CRC32::Calc(const uint8 byte, uint32& crc32var) {
 	crc32var = ((crc32var) >> 8) ^ CRC32Table[(byte) ^ ((crc32var) & 0x000000FF)];
 }

@@ -1,0 +1,44 @@
+// 0x1a
+// work in progress
+
+struct LoginBase
+{
+    u32 sequence_id;
+    u8 compressed;
+    u8 encrypt_type;
+    u32 unknown08;
+};
+
+struct Realm
+{
+    char address[];
+    u32 port;
+    u32 server_category;
+    //not sure yet, seen 289 on a lot of classic servers
+    //41 fangbreaker, teek, oakwynd, tormax
+    //31 yelniak
+    //33 vaniki, mischief
+    u32 status_code; 
+    u32 server_id;
+    char name[];
+    char language[];
+    char region[];
+    char server_type_desc[];
+    char server_desc[];
+    u32 server_flags;
+    u32 players_online;
+    u32 expansion; //I think
+    u32 truebox_max_clients;
+};
+
+struct Packet {
+    LoginBase base;
+    
+    u8 success;
+    u32 login_server_string_id;
+    char login_server_string[];
+    u32 realm_count;
+    Realm realms[realm_count];
+};
+
+Packet packet @0x00;

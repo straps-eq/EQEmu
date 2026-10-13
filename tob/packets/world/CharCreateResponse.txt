@@ -1,0 +1,26 @@
+struct CharacterCreateAllocation
+{
+    u32 index;
+    u32 base_stats[7];
+    u32 default_allocations[7];
+};
+
+struct RaceClassCombo
+{
+    u64 expansion_req;
+    u32 race;
+    u32 class;
+    u32 deity;
+    u32 allocation_index;
+    u32 zone;
+};
+
+struct Packet {
+    u8 padding1;
+    u32 allocation_count;
+    CharacterCreateAllocation allocations[allocation_count];
+    u32 race_class_combo_count;
+    RaceClassCombo race_class_combos[race_class_combo_count];
+};
+
+Packet p @ 0x00;

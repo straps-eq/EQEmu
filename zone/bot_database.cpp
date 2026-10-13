@@ -1,21 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.org)
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "bot_database.h"
 
 #include "common/data_verification.h"
@@ -229,7 +228,7 @@ bool BotDatabase::LoadBotSpellCastingChances()
 	return true;
 }
 
-bool BotDatabase::QueryNameAvailability(const std::string& bot_name, bool& available_flag)
+bool BotDatabase::QueryNameAvailability(const std::string& bot_name)
 {
 	if (
 		bot_name.empty() ||
@@ -239,8 +238,6 @@ bool BotDatabase::QueryNameAvailability(const std::string& bot_name, bool& avail
 	) {
 		return false;
 	}
-
-	available_flag = true;
 
 	return true;
 }
@@ -515,7 +512,7 @@ bool BotDatabase::SaveNewBot(Bot* b, uint32& bot_id)
 	e.poison                 = b->GetBasePR();
 	e.disease                = b->GetBaseDR();
 	e.corruption             = b->GetBaseCorrup();
-	e.expansion_bitmask      = b->GetExpansionBitmask();
+	e.expansion_bitmask      = RuleI(Bots, BotExpansionSettings);
 
 	e = BotDataRepository::InsertOne(database, e);
 
@@ -625,41 +622,70 @@ bool BotDatabase::LoadBuffs(Bot* b)
 		buffs[index].spellid = SPELL_UNKNOWN;
 	}
 
-	uint32 buff_count = 0;
+	uint32 buff_index = 0;
 
 	for (const auto& e : l) {
-		if (buff_count >= BUFF_COUNT) {
+		if (buff_index >= BUFF_COUNT) {
 			continue;
 		}
 
-		buffs[buff_count].spellid       = e.spell_id;
-		buffs[buff_count].casterlevel   = e.caster_level;
-		buffs[buff_count].ticsremaining = e.tics_remaining;
-		buffs[buff_count].counters      = 0;
+		Client* c = entity_list.GetClientByName(e.caster_name.c_str());
 
-		if (CalculatePoisonCounters(buffs[buff_count].spellid) > 0) {
-			buffs[buff_count].counters = e.poison_counters;
-		} else if (CalculateDiseaseCounters(buffs[buff_count].spellid) > 0) {
-			buffs[buff_count].counters = e.disease_counters;
-		} else if (CalculateCurseCounters(buffs[buff_count].spellid) > 0) {
-			buffs[buff_count].counters = e.curse_counters;
-		} else if (CalculateCorruptionCounters(buffs[buff_count].spellid) > 0) {
-			buffs[buff_count].counters = e.corruption_counters;
+		buffs[buff_index].spellid = e.spell_id;
+		buffs[buff_index].casterlevel = e.caster_level;
+
+		if (c) {
+			buffs[buff_index].casterid = c->GetID();
+			buffs[buff_index].client   = true;
+
+			strncpy(buffs[buff_index].caster_name, c->GetName(), 64);
+		} else {
+			buffs[buff_index].casterid = 0;
+			buffs[buff_index].client   = false;
+
+			strncpy(buffs[buff_index].caster_name, "", 64);
 		}
 
-		buffs[buff_count].hit_number      = e.numhits;
-		buffs[buff_count].melee_rune      = e.melee_rune;
-		buffs[buff_count].magic_rune      = e.magic_rune;
-		buffs[buff_count].dot_rune        = e.dot_rune;
-		buffs[buff_count].persistant_buff = e.persistent;
-		buffs[buff_count].caston_x        = e.caston_x;
-		buffs[buff_count].caston_y        = e.caston_y;
-		buffs[buff_count].caston_z        = e.caston_z;
-		buffs[buff_count].ExtraDIChance   = e.extra_di_chance;
-		buffs[buff_count].instrument_mod  = e.instrument_mod;
-		buffs[buff_count].casterid        = 0;
+		buffs[buff_index].ticsremaining     = e.tics_remaining;
+		buffs[buff_index].initialduration   = e.initial_duration;
+		buffs[buff_index].counters          = 0;
+		buffs[buff_index].hit_number        = e.numhits;
+		buffs[buff_index].melee_rune        = e.melee_rune;
+		buffs[buff_index].magic_rune        = e.magic_rune;
+		buffs[buff_index].persistent_buff   = e.persistent ? true : false;
+		buffs[buff_index].dot_rune          = e.dot_rune;
+		buffs[buff_index].caston_x          = e.caston_x;
+		buffs[buff_index].caston_y          = e.caston_y;
+		buffs[buff_index].caston_z          = e.caston_z;
+		buffs[buff_index].ExtraDIChance     = e.extra_di_chance;
+		buffs[buff_index].RootBreakChance   = 0;
+		buffs[buff_index].virus_spread_time = 0;
+		buffs[buff_index].UpdateClient      = false;
+		buffs[buff_index].instrument_mod    = e.instrument_mod;
 
-		++buff_count;
+		if (CalculatePoisonCounters(buffs[buff_index].spellid) > 0) {
+			buffs[buff_index].counters = e.poison_counters;
+		} else if (CalculateDiseaseCounters(buffs[buff_index].spellid) > 0) {
+			buffs[buff_index].counters = e.disease_counters;
+		} else if (CalculateCurseCounters(buffs[buff_index].spellid) > 0) {
+			buffs[buff_index].counters = e.curse_counters;
+		} else if (CalculateCorruptionCounters(buffs[buff_index].spellid) > 0) {
+			buffs[buff_index].counters = e.corruption_counters;
+		}
+
+		buffs[buff_index].hit_number      = e.numhits;
+		buffs[buff_index].melee_rune      = e.melee_rune;
+		buffs[buff_index].magic_rune      = e.magic_rune;
+		buffs[buff_index].dot_rune        = e.dot_rune;
+		buffs[buff_index].persistent_buff = e.persistent;
+		buffs[buff_index].caston_x        = e.caston_x;
+		buffs[buff_index].caston_y        = e.caston_y;
+		buffs[buff_index].caston_z        = e.caston_z;
+		buffs[buff_index].ExtraDIChance   = e.extra_di_chance;
+		buffs[buff_index].instrument_mod  = e.instrument_mod;
+		buffs[buff_index].casterid        = 0;
+
+		++buff_index;
 	}
 
 	return true;
@@ -694,8 +720,10 @@ bool BotDatabase::SaveBuffs(Bot* b)
 
 		e.spell_id            = buffs[buff_index].spellid;
 		e.caster_level        = buffs[buff_index].casterlevel;
+		e.caster_name         = buffs[buff_index].caster_name;
 		e.duration_formula    = spells[buffs[buff_index].spellid].buff_duration_formula;
 		e.tics_remaining      = buffs[buff_index].ticsremaining;
+		e.initial_duration    = buffs[buff_index].initialduration;
 		e.poison_counters     = CalculatePoisonCounters(buffs[buff_index].spellid) > 0 ? buffs[buff_index].counters : 0;
 		e.disease_counters    = CalculateDiseaseCounters(buffs[buff_index].spellid) > 0 ? buffs[buff_index].counters : 0;
 		e.curse_counters      = CalculateCurseCounters(buffs[buff_index].spellid) > 0 ? buffs[buff_index].counters : 0;
@@ -704,7 +732,7 @@ bool BotDatabase::SaveBuffs(Bot* b)
 		e.melee_rune          = buffs[buff_index].melee_rune;
 		e.magic_rune          = buffs[buff_index].magic_rune;
 		e.dot_rune            = buffs[buff_index].dot_rune;
-		e.persistent          = buffs[buff_index].persistant_buff ? 1 : 0;
+		e.persistent          = buffs[buff_index].persistent_buff ? 1 : 0;
 		e.caston_x            = buffs[buff_index].caston_x;
 		e.caston_y            = buffs[buff_index].caston_y;
 		e.caston_z            = buffs[buff_index].caston_z;
@@ -1255,7 +1283,7 @@ bool BotDatabase::LoadPetIndex(const uint32 bot_id, uint32& pet_index)
 	return true;
 }
 
-bool BotDatabase::LoadPetSpellID(const uint32 bot_id, uint32& pet_spell_id)
+bool BotDatabase::LoadPetSpellID(const uint32 bot_id, int32& pet_spell_id)
 {
 	if (!bot_id) {
 		return false;
@@ -1280,7 +1308,7 @@ bool BotDatabase::LoadPetSpellID(const uint32 bot_id, uint32& pet_spell_id)
 	return true;
 }
 
-bool BotDatabase::LoadPetStats(const uint32 bot_id, std::string& pet_name, uint32& pet_mana, uint32& pet_hp, uint32& pet_spell_id)
+bool BotDatabase::LoadPetStats(const uint32 bot_id, std::string& pet_name, uint32& pet_mana, uint32& pet_hp, int32& pet_spell_id)
 {
 	if (!bot_id) {
 		return false;
@@ -1318,7 +1346,7 @@ bool BotDatabase::LoadPetStats(const uint32 bot_id, std::string& pet_name, uint3
 	return true;
 }
 
-bool BotDatabase::SavePetStats(const uint32 bot_id, const std::string& pet_name, const uint32 pet_mana, const uint32 pet_hp, const uint32 pet_spell_id)
+bool BotDatabase::SavePetStats(const uint32 bot_id, const std::string& pet_name, const uint32 pet_mana, const uint32 pet_hp, const int32 pet_spell_id)
 {
 	if (!bot_id || pet_name.empty() || !pet_spell_id || pet_spell_id > SPDAT_RECORDS) {
 		return false;
@@ -1363,7 +1391,7 @@ bool BotDatabase::DeletePetStats(const uint32 bot_id)
 	return BotPetsRepository::DeleteOne(database, saved_pet_index) == 1;
 }
 
-bool BotDatabase::LoadPetBuffs(const uint32 bot_id, SpellBuff_Struct* pet_buffs)
+bool BotDatabase::LoadPetBuffs(const uint32 bot_id, Buffs_Struct* pet_buffs)
 {
 	if (!bot_id) {
 		return false;
@@ -1398,19 +1426,39 @@ bool BotDatabase::LoadPetBuffs(const uint32 bot_id, SpellBuff_Struct* pet_buffs)
 			break;
 		}
 
-		pet_buffs[buff_index].spellid  = e.spell_id;
-		pet_buffs[buff_index].level    = e.caster_level;
-		pet_buffs[buff_index].duration = e.duration;
+		Client* c = entity_list.GetClientByName(e.caster_name.c_str());
 
-		if (CalculatePoisonCounters(pet_buffs[buff_index].spellid) > 0) {
-			pet_buffs[buff_index].counters = CalculatePoisonCounters(pet_buffs[buff_index].spellid);
-		} else if (CalculateDiseaseCounters(pet_buffs[buff_index].spellid) > 0) {
-			pet_buffs[buff_index].counters = CalculateDiseaseCounters(pet_buffs[buff_index].spellid);
-		} else if (CalculateCurseCounters(pet_buffs[buff_index].spellid) > 0) {
-			pet_buffs[buff_index].counters = CalculateCurseCounters(pet_buffs[buff_index].spellid);
-		} else if (CalculateCorruptionCounters(pet_buffs[buff_index].spellid) > 0) {
-			pet_buffs[buff_index].counters = CalculateCorruptionCounters(pet_buffs[buff_index].spellid);
+		pet_buffs[buff_index].spellid = e.spell_id;
+		pet_buffs[buff_index].casterlevel = e.caster_level;
+
+		if (c) {
+			pet_buffs[buff_index].casterid = c->GetID();
+			pet_buffs[buff_index].client   = true;
+
+			strncpy(pet_buffs[buff_index].caster_name, c->GetName(), 64);
+		} else {
+			pet_buffs[buff_index].casterid = 0;
+			pet_buffs[buff_index].client   = false;
+
+			strncpy(pet_buffs[buff_index].caster_name, "", 64);
 		}
+
+		pet_buffs[buff_index].ticsremaining     = e.tics_remaining;
+		pet_buffs[buff_index].initialduration   = e.initial_duration;
+		pet_buffs[buff_index].counters          = e.counters;
+		pet_buffs[buff_index].hit_number        = e.numhits;
+		pet_buffs[buff_index].melee_rune        = e.melee_rune;
+		pet_buffs[buff_index].magic_rune        = e.magic_rune;
+		pet_buffs[buff_index].persistent_buff   = e.persistent ? true : false;
+		pet_buffs[buff_index].dot_rune          = e.dot_rune;
+		pet_buffs[buff_index].caston_x          = e.caston_x;
+		pet_buffs[buff_index].caston_y          = e.caston_y;
+		pet_buffs[buff_index].caston_z          = e.caston_z;
+		pet_buffs[buff_index].ExtraDIChance     = e.extra_di_chance;
+		pet_buffs[buff_index].RootBreakChance   = 0;
+		pet_buffs[buff_index].virus_spread_time = 0;
+		pet_buffs[buff_index].UpdateClient      = false;
+		pet_buffs[buff_index].instrument_mod    = e.instrument_mod;
 
 		++buff_index;
 	}
@@ -1418,7 +1466,7 @@ bool BotDatabase::LoadPetBuffs(const uint32 bot_id, SpellBuff_Struct* pet_buffs)
 	return true;
 }
 
-bool BotDatabase::SavePetBuffs(const uint32 bot_id, const SpellBuff_Struct* pet_buffs, bool delete_flag)
+bool BotDatabase::SavePetBuffs(const uint32 bot_id, const Buffs_Struct* pet_buffs, bool delete_flag)
 {
 	if (
 		!bot_id ||
@@ -1449,9 +1497,22 @@ bool BotDatabase::SavePetBuffs(const uint32 bot_id, const SpellBuff_Struct* pet_
 			continue;
 		}
 
-		e.spell_id     = pet_buffs[buff_index].spellid;
-		e.caster_level = pet_buffs[buff_index].level;
-		e.duration     = pet_buffs[buff_index].duration;
+		e.spell_id         = pet_buffs[buff_index].spellid;
+		e.caster_level     = pet_buffs[buff_index].casterlevel;
+		e.caster_name      = pet_buffs[buff_index].caster_name;
+		e.tics_remaining   = pet_buffs[buff_index].ticsremaining;
+		e.initial_duration = pet_buffs[buff_index].initialduration;
+		e.counters         = pet_buffs[buff_index].counters;
+		e.numhits          = pet_buffs[buff_index].hit_number;
+		e.melee_rune       = pet_buffs[buff_index].melee_rune;
+		e.magic_rune       = pet_buffs[buff_index].magic_rune;
+		e.persistent       = pet_buffs[buff_index].persistent_buff;
+		e.dot_rune         = pet_buffs[buff_index].dot_rune;
+		e.caston_x         = pet_buffs[buff_index].caston_x;
+		e.caston_y         = pet_buffs[buff_index].caston_y;
+		e.caston_z         = pet_buffs[buff_index].caston_z;
+		e.extra_di_chance  = pet_buffs[buff_index].ExtraDIChance;
+		e.instrument_mod   = pet_buffs[buff_index].instrument_mod;
 
 		v.emplace_back(e);
 	}
@@ -2575,7 +2636,7 @@ bool BotDatabase::DeleteBotBlockedBuffs(const uint32 bot_id)
 
 void BotDatabase::CheckBotSpells() {
 	auto spell_list = BotSpellsEntriesRepository::All(content_db);
-	uint16 spell_id;
+	int32 spell_id;
 	SPDat_Spell_Struct spell;
 
 	for (const auto& s : spell_list) {

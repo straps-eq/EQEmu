@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef LUA_EQEMU
 
 #include "lua_general.h"
@@ -428,7 +445,7 @@ std::string lua_get_race_name(uint32 race_id) {
 	return quest_manager.getracename(race_id);
 }
 
-std::string lua_get_spell_name(uint32 spell_id) {
+std::string lua_get_spell_name(int32 spell_id) {
 	return quest_manager.getspellname(spell_id);
 }
 
@@ -2038,11 +2055,11 @@ const int lua_get_item_stat(uint32 item_id, std::string identifier) {
 	return quest_manager.getitemstat(item_id, identifier);
 }
 
-int lua_get_spell_stat(uint32 spell_id, std::string stat_identifier) {
+int lua_get_spell_stat(int32 spell_id, std::string stat_identifier) {
 	return quest_manager.getspellstat(spell_id, stat_identifier);
 }
 
-int lua_get_spell_stat(uint32 spell_id, std::string stat_identifier, uint8 slot) {
+int lua_get_spell_stat(int32 spell_id, std::string stat_identifier, uint8 slot) {
 	return quest_manager.getspellstat(spell_id, stat_identifier, slot);
 }
 
@@ -2263,37 +2280,37 @@ void lua_cross_zone_assign_task_by_client_name(const char* client_name, uint32 t
 	quest_manager.CrossZoneTaskUpdate(update_type, update_subtype, update_identifier, task_id, task_subidentifier, update_count, enforce_level_requirement, client_name);
 }
 
-void lua_cross_zone_cast_spell_by_char_id(int character_id, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_char_id(int character_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Character;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, character_id, spell_id);
 }
 
-void lua_cross_zone_cast_spell_by_group_id(int group_id, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_group_id(int group_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Group;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, group_id, spell_id);
 }
 
-void lua_cross_zone_cast_spell_by_raid_id(int raid_id, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_raid_id(int raid_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Raid;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, raid_id, spell_id);
 }
 
-void lua_cross_zone_cast_spell_by_guild_id(int guild_id, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_guild_id(int guild_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Guild;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, guild_id, spell_id);
 }
 
-void lua_cross_zone_cast_spell_by_expedition_id(uint32 expedition_id, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_expedition_id(uint32 expedition_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Expedition;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, expedition_id, spell_id);
 }
 
-void lua_cross_zone_cast_spell_by_client_name(const char* client_name, uint32 spell_id) {
+void lua_cross_zone_cast_spell_by_client_name(const char* client_name, int32 spell_id) {
 	uint8 update_type = CZUpdateType_ClientName;
 	uint8 update_subtype = CZSpellUpdateSubtype_Cast;
 	int update_identifier = 0;
@@ -3054,37 +3071,37 @@ void lua_cross_zone_remove_ldon_win_by_client_name(const char* client_name, uint
 	quest_manager.CrossZoneLDoNUpdate(update_type, update_subtype, update_identifier, theme_id, points, client_name);
 }
 
-void lua_cross_zone_remove_spell_by_char_id(int character_id, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_char_id(int character_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Character;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, character_id, spell_id);
 }
 
-void lua_cross_zone_remove_spell_by_group_id(int group_id, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_group_id(int group_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Group;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, group_id, spell_id);
 }
 
-void lua_cross_zone_remove_spell_by_raid_id(int raid_id, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_raid_id(int raid_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Raid;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, raid_id, spell_id);
 }
 
-void lua_cross_zone_remove_spell_by_guild_id(int guild_id, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_guild_id(int guild_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Guild;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, guild_id, spell_id);
 }
 
-void lua_cross_zone_remove_spell_by_expedition_id(uint32 expedition_id, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_expedition_id(uint32 expedition_id, int32 spell_id) {
 	uint8 update_type = CZUpdateType_Expedition;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	quest_manager.CrossZoneSpell(update_type, update_subtype, expedition_id, spell_id);
 }
 
-void lua_cross_zone_remove_spell_by_client_name(const char* client_name, uint32 spell_id) {
+void lua_cross_zone_remove_spell_by_client_name(const char* client_name, int32 spell_id) {
 	uint8 update_type = CZUpdateType_ClientName;
 	uint8 update_subtype = CZSpellUpdateSubtype_Remove;
 	int update_identifier = 0;
@@ -3429,17 +3446,17 @@ void lua_world_wide_assign_task(uint32 task_id, bool enforce_level_requirement, 
 	quest_manager.WorldWideTaskUpdate(update_type, task_id, task_subidentifier, update_count, enforce_level_requirement, min_status, max_status);
 }
 
-void lua_world_wide_cast_spell(uint32 spell_id) {
+void lua_world_wide_cast_spell(int32 spell_id) {
 	uint8 update_type = WWSpellUpdateType_Cast;
 	quest_manager.WorldWideSpell(update_type, spell_id);
 }
 
-void lua_world_wide_cast_spell(uint32 spell_id, uint8 min_status) {
+void lua_world_wide_cast_spell(int32 spell_id, uint8 min_status) {
 	uint8 update_type = WWSpellUpdateType_Cast;
 	quest_manager.WorldWideSpell(update_type, spell_id, min_status);
 }
 
-void lua_world_wide_cast_spell(uint32 spell_id, uint8 min_status, uint8 max_status) {
+void lua_world_wide_cast_spell(int32 spell_id, uint8 min_status, uint8 max_status) {
 	uint8 update_type = WWSpellUpdateType_Cast;
 	quest_manager.WorldWideSpell(update_type, spell_id, min_status, max_status);
 }
@@ -3612,17 +3629,17 @@ void lua_world_wide_remove_ldon_win(uint32 theme_id, uint8 min_status, uint8 max
 	quest_manager.WorldWideLDoNUpdate(update_type, theme_id, points, min_status, max_status);
 }
 
-void lua_world_wide_remove_spell(uint32 spell_id) {
+void lua_world_wide_remove_spell(int32 spell_id) {
 	uint8 update_type = WWSpellUpdateType_Remove;
 	quest_manager.WorldWideSpell(update_type, spell_id);
 }
 
-void lua_world_wide_remove_spell(uint32 spell_id, uint8 min_status) {
+void lua_world_wide_remove_spell(int32 spell_id, uint8 min_status) {
 	uint8 update_type = WWSpellUpdateType_Remove;
 	quest_manager.WorldWideSpell(update_type, spell_id, min_status);
 }
 
-void lua_world_wide_remove_spell(uint32 spell_id, uint8 min_status, uint8 max_status) {
+void lua_world_wide_remove_spell(int32 spell_id, uint8 min_status, uint8 max_status) {
 	uint8 update_type = WWSpellUpdateType_Remove;
 	quest_manager.WorldWideSpell(update_type, spell_id, min_status, max_status);
 }
@@ -3789,7 +3806,7 @@ uint32 lua_count_spawned_npcs(luabind::adl::object table) {
 	return entity_list.CountSpawnedNPCs(npc_ids);
 }
 
-Lua_Spell lua_get_spell(uint32 spell_id) {
+Lua_Spell lua_get_spell(int32 spell_id) {
 	return Lua_Spell(spell_id);
 }
 
@@ -4784,443 +4801,443 @@ void lua_send_channel_message(Lua_Client from, const char* to, uint8 channel_num
 	quest_manager.SendChannelMessage(from, to, channel_number, guild_id, language_id, language_skill, message);
 }
 
-uint8 lua_get_spell_level(uint16 spell_id, uint8 class_id)
+uint8 lua_get_spell_level(int32 spell_id, uint8 class_id)
 {
 	const auto spell_level = GetSpellLevel(spell_id, class_id);
 	return spell_level > RuleI(Character, MaxLevel) ? UINT8_MAX : spell_level;
 }
 
-bool lua_is_effect_in_spell(uint16 spell_id, int effect_id)
+bool lua_is_effect_in_spell(int32 spell_id, int effect_id)
 {
 	return IsEffectInSpell(spell_id, effect_id);
 }
 
-bool lua_is_beneficial_spell(uint16 spell_id)
+bool lua_is_beneficial_spell(int32 spell_id)
 {
 	return IsBeneficialSpell(spell_id);
 }
 
-bool lua_is_detrimental_spell(uint16 spell_id)
+bool lua_is_detrimental_spell(int32 spell_id)
 {
 	return IsDetrimentalSpell(spell_id);
 }
 
-bool lua_is_targetable_ae_spell(uint16 spell_id)
+bool lua_is_targetable_ae_spell(int32 spell_id)
 {
 	return IsTargetableAESpell(spell_id);
 }
 
-bool lua_is_sacrifice_spell(uint16 spell_id)
+bool lua_is_sacrifice_spell(int32 spell_id)
 {
 	return IsSacrificeSpell(spell_id);
 }
 
-bool lua_is_lifetap_spell(uint16 spell_id)
+bool lua_is_lifetap_spell(int32 spell_id)
 {
 	return IsLifetapSpell(spell_id);
 }
 
-bool lua_is_mesmerize_spell(uint16 spell_id)
+bool lua_is_mesmerize_spell(int32 spell_id)
 {
 	return IsMesmerizeSpell(spell_id);
 }
 
-bool lua_is_stun_spell(uint16 spell_id)
+bool lua_is_stun_spell(int32 spell_id)
 {
 	return IsStunSpell(spell_id);
 }
 
-bool lua_is_summon_spell(uint16 spell_id)
+bool lua_is_summon_spell(int32 spell_id)
 {
 	return IsSummonSpell(spell_id);
 }
 
-bool lua_is_damage_spell(uint16 spell_id)
+bool lua_is_damage_spell(int32 spell_id)
 {
 	return IsDamageSpell(spell_id);
 }
 
-bool lua_is_fear_spell(uint16 spell_id)
+bool lua_is_fear_spell(int32 spell_id)
 {
 	return IsFearSpell(spell_id);
 }
 
-bool lua_is_cure_spell(uint16 spell_id)
+bool lua_is_cure_spell(int32 spell_id)
 {
 	return IsCureSpell(spell_id);
 }
 
-bool lua_is_haste_spell(uint16 spell_id)
+bool lua_is_haste_spell(int32 spell_id)
 {
 	return IsHasteSpell(spell_id);
 }
 
-bool lua_is_harmony_spell(uint16 spell_id)
+bool lua_is_harmony_spell(int32 spell_id)
 {
 	return IsHarmonySpell(spell_id);
 }
 
-bool lua_is_percental_heal_spell(uint16 spell_id)
+bool lua_is_percental_heal_spell(int32 spell_id)
 {
 	return IsPercentalHealSpell(spell_id);
 }
 
-bool lua_is_group_only_spell(uint16 spell_id)
+bool lua_is_group_only_spell(int32 spell_id)
 {
 	return IsGroupOnlySpell(spell_id);
 }
 
-bool lua_is_invisible_spell(uint16 spell_id)
+bool lua_is_invisible_spell(int32 spell_id)
 {
 	return IsInvisibleSpell(spell_id);
 }
 
-bool lua_is_invulnerability_spell(uint16 spell_id)
+bool lua_is_invulnerability_spell(int32 spell_id)
 {
 	return IsInvulnerabilitySpell(spell_id);
 }
 
-bool lua_is_complete_heal_duration_spell(uint16 spell_id)
+bool lua_is_complete_heal_duration_spell(int32 spell_id)
 {
 	return IsCompleteHealDurationSpell(spell_id);
 }
 
-bool lua_is_poison_counter_spell(uint16 spell_id)
+bool lua_is_poison_counter_spell(int32 spell_id)
 {
 	return IsPoisonCounterSpell(spell_id);
 }
 
-bool lua_is_disease_counter_spell(uint16 spell_id)
+bool lua_is_disease_counter_spell(int32 spell_id)
 {
 	return IsDiseaseCounterSpell(spell_id);
 }
 
-bool lua_is_summon_item_spell(uint16 spell_id)
+bool lua_is_summon_item_spell(int32 spell_id)
 {
 	return IsSummonItemSpell(spell_id);
 }
 
-bool lua_is_summon_skeleton_spell(uint16 spell_id)
+bool lua_is_summon_skeleton_spell(int32 spell_id)
 {
 	return IsSummonSkeletonSpell(spell_id);
 }
 
-bool lua_is_summon_pet_spell(uint16 spell_id)
+bool lua_is_summon_pet_spell(int32 spell_id)
 {
 	return IsSummonPetSpell(spell_id);
 }
 
-bool lua_is_pet_spell(uint16 spell_id)
+bool lua_is_pet_spell(int32 spell_id)
 {
 	return IsPetSpell(spell_id);
 }
 
-bool lua_is_summon_pc_spell(uint16 spell_id)
+bool lua_is_summon_pc_spell(int32 spell_id)
 {
 	return IsSummonPCSpell(spell_id);
 }
 
-bool lua_is_charm_spell(uint16 spell_id)
+bool lua_is_charm_spell(int32 spell_id)
 {
 	return IsCharmSpell(spell_id);
 }
 
-bool lua_is_blind_spell(uint16 spell_id)
+bool lua_is_blind_spell(int32 spell_id)
 {
 	return IsBlindSpell(spell_id);
 }
 
-bool lua_is_health_spell(uint16 spell_id)
+bool lua_is_health_spell(int32 spell_id)
 {
 	return IsHealthSpell(spell_id);
 }
 
-bool lua_is_cast_time_reduction_spell(uint16 spell_id)
+bool lua_is_cast_time_reduction_spell(int32 spell_id)
 {
 	return IsCastTimeReductionSpell(spell_id);
 }
 
-bool lua_is_increase_duration_spell(uint16 spell_id)
+bool lua_is_increase_duration_spell(int32 spell_id)
 {
 	return IsIncreaseDurationSpell(spell_id);
 }
 
-bool lua_is_mana_cost_reduction_spell(uint16 spell_id)
+bool lua_is_mana_cost_reduction_spell(int32 spell_id)
 {
 	return IsManaCostReductionSpell(spell_id);
 }
 
-bool lua_is_increase_range_spell(uint16 spell_id)
+bool lua_is_increase_range_spell(int32 spell_id)
 {
 	return IsIncreaseRangeSpell(spell_id);
 }
 
-bool lua_is_improved_healing_spell(uint16 spell_id)
+bool lua_is_improved_healing_spell(int32 spell_id)
 {
 	return IsImprovedHealingSpell(spell_id);
 }
 
-bool lua_is_improved_damage_spell(uint16 spell_id)
+bool lua_is_improved_damage_spell(int32 spell_id)
 {
 	return IsImprovedDamageSpell(spell_id);
 }
 
-bool lua_is_ae_duration_spell(uint16 spell_id)
+bool lua_is_ae_duration_spell(int32 spell_id)
 {
 	return IsAEDurationSpell(spell_id);
 }
 
-bool lua_is_pure_nuke_spell(uint16 spell_id)
+bool lua_is_pure_nuke_spell(int32 spell_id)
 {
 	return IsPureNukeSpell(spell_id);
 }
 
-bool lua_is_ae_nuke_spell(uint16 spell_id)
+bool lua_is_ae_nuke_spell(int32 spell_id)
 {
 	return IsAENukeSpell(spell_id);
 }
 
-bool lua_is_pbae_nuke_spell(uint16 spell_id)
+bool lua_is_pbae_nuke_spell(int32 spell_id)
 {
 	return IsPBAENukeSpell(spell_id);
 }
 
-bool lua_is_ae_rain_nuke_spell(uint16 spell_id)
+bool lua_is_ae_rain_nuke_spell(int32 spell_id)
 {
 	return IsAERainNukeSpell(spell_id);
 }
 
-bool lua_is_partial_resistable_spell(uint16 spell_id)
+bool lua_is_partial_resistable_spell(int32 spell_id)
 {
 	return IsPartialResistableSpell(spell_id);
 }
 
-bool lua_is_resistable_spell(uint16 spell_id)
+bool lua_is_resistable_spell(int32 spell_id)
 {
 	return IsResistableSpell(spell_id);
 }
 
-bool lua_is_group_spell(uint16 spell_id)
+bool lua_is_group_spell(int32 spell_id)
 {
 	return IsGroupSpell(spell_id);
 }
 
-bool lua_is_tgb_compatible_spell(uint16 spell_id)
+bool lua_is_tgb_compatible_spell(int32 spell_id)
 {
 	return IsTGBCompatibleSpell(spell_id);
 }
 
-bool lua_is_bard_song(uint16 spell_id)
+bool lua_is_bard_song(int32 spell_id)
 {
 	return IsBardSong(spell_id);
 }
 
-bool lua_is_pulsing_bard_song(uint16 spell_id)
+bool lua_is_pulsing_bard_song(int32 spell_id)
 {
 	return IsPulsingBardSong(spell_id);
 }
 
-bool lua_is_discipline_buff(uint16 spell_id)
+bool lua_is_discipline_buff(int32 spell_id)
 {
 	return IsDisciplineBuff(spell_id);
 }
 
-bool lua_is_discipline(uint16 spell_id)
+bool lua_is_discipline(int32 spell_id)
 {
 	return IsDiscipline(spell_id);
 }
 
-bool lua_is_combat_skill(uint16 spell_id)
+bool lua_is_combat_skill(int32 spell_id)
 {
 	return IsCombatSkill(spell_id);
 }
 
-bool lua_is_resurrection_effects(uint16 spell_id)
+bool lua_is_resurrection_effects(int32 spell_id)
 {
 	return IsResurrectionEffects(spell_id);
 }
 
-bool lua_is_rune_spell(uint16 spell_id)
+bool lua_is_rune_spell(int32 spell_id)
 {
 	return IsRuneSpell(spell_id);
 }
 
-bool lua_is_magic_rune_spell(uint16 spell_id)
+bool lua_is_magic_rune_spell(int32 spell_id)
 {
 	return IsMagicRuneSpell(spell_id);
 }
 
-bool lua_is_mana_tap_spell(uint16 spell_id)
+bool lua_is_mana_tap_spell(int32 spell_id)
 {
 	return IsManaTapSpell(spell_id);
 }
 
-bool lua_is_alliance_spell(uint16 spell_id)
+bool lua_is_alliance_spell(int32 spell_id)
 {
 	return IsAllianceSpell(spell_id);
 }
 
-bool lua_is_death_save_spell(uint16 spell_id)
+bool lua_is_death_save_spell(int32 spell_id)
 {
 	return IsDeathSaveSpell(spell_id);
 }
 
-bool lua_is_partial_death_save_spell(uint16 spell_id)
+bool lua_is_partial_death_save_spell(int32 spell_id)
 {
 	return IsPartialDeathSaveSpell(spell_id);
 }
 
-bool lua_is_full_death_save_spell(uint16 spell_id)
+bool lua_is_full_death_save_spell(int32 spell_id)
 {
 	return IsFullDeathSaveSpell(spell_id);
 }
 
-bool lua_is_shadow_step_spell(uint16 spell_id)
+bool lua_is_shadow_step_spell(int32 spell_id)
 {
 	return IsShadowStepSpell(spell_id);
 }
 
-bool lua_is_succor_spell(uint16 spell_id)
+bool lua_is_succor_spell(int32 spell_id)
 {
 	return IsSuccorSpell(spell_id);
 }
 
-bool lua_is_teleport_spell(uint16 spell_id)
+bool lua_is_teleport_spell(int32 spell_id)
 {
 	return IsTeleportSpell(spell_id);
 }
 
-bool lua_is_translocate_spell(uint16 spell_id)
+bool lua_is_translocate_spell(int32 spell_id)
 {
 	return IsTranslocateSpell(spell_id);
 }
 
-bool lua_is_gate_spell(uint16 spell_id)
+bool lua_is_gate_spell(int32 spell_id)
 {
 	return IsGateSpell(spell_id);
 }
 
-bool lua_is_illusion_spell(uint16 spell_id)
+bool lua_is_illusion_spell(int32 spell_id)
 {
 	return IsIllusionSpell(spell_id);
 }
 
-bool lua_is_ldon_object_spell(uint16 spell_id)
+bool lua_is_ldon_object_spell(int32 spell_id)
 {
 	return IsLDoNObjectSpell(spell_id);
 }
 
-bool lua_is_heal_over_time_spell(uint16 spell_id)
+bool lua_is_heal_over_time_spell(int32 spell_id)
 {
 	return IsHealOverTimeSpell(spell_id);
 }
 
-bool lua_is_complete_heal_spell(uint16 spell_id)
+bool lua_is_complete_heal_spell(int32 spell_id)
 {
 	return IsCompleteHealSpell(spell_id);
 }
 
-bool lua_is_fast_heal_spell(uint16 spell_id)
+bool lua_is_fast_heal_spell(int32 spell_id)
 {
 	return IsFastHealSpell(spell_id);
 }
 
-bool lua_is_very_fast_heal_spell(uint16 spell_id)
+bool lua_is_very_fast_heal_spell(int32 spell_id)
 {
 	return IsVeryFastHealSpell(spell_id);
 }
 
-bool lua_is_regular_single_target_heal_spell(uint16 spell_id)
+bool lua_is_regular_single_target_heal_spell(int32 spell_id)
 {
 	return IsRegularSingleTargetHealSpell(spell_id);
 }
 
-bool lua_is_regular_group_heal_spell(uint16 spell_id)
+bool lua_is_regular_group_heal_spell(int32 spell_id)
 {
 	return IsRegularGroupHealSpell(spell_id);
 }
 
-bool lua_is_group_complete_heal_spell(uint16 spell_id)
+bool lua_is_group_complete_heal_spell(int32 spell_id)
 {
 	return IsGroupCompleteHealSpell(spell_id);
 }
 
-bool lua_is_group_heal_over_time_spell(uint16 spell_id)
+bool lua_is_group_heal_over_time_spell(int32 spell_id)
 {
 	return IsGroupHealOverTimeSpell(spell_id);
 }
 
-bool lua_is_debuff_spell(uint16 spell_id)
+bool lua_is_debuff_spell(int32 spell_id)
 {
 	return IsDebuffSpell(spell_id);
 }
 
-bool lua_is_resist_debuff_spell(uint16 spell_id)
+bool lua_is_resist_debuff_spell(int32 spell_id)
 {
 	return IsResistDebuffSpell(spell_id);
 }
 
-bool lua_is_self_conversion_spell(uint16 spell_id)
+bool lua_is_self_conversion_spell(int32 spell_id)
 {
 	return IsSelfConversionSpell(spell_id);
 }
 
-bool lua_is_buff_spell(uint16 spell_id)
+bool lua_is_buff_spell(int32 spell_id)
 {
 	return IsBuffSpell(spell_id);
 }
 
-bool lua_is_persist_death_spell(uint16 spell_id)
+bool lua_is_persist_death_spell(int32 spell_id)
 {
 	return IsPersistDeathSpell(spell_id);
 }
 
-bool lua_is_suspendable_spell(uint16 spell_id)
+bool lua_is_suspendable_spell(int32 spell_id)
 {
 	return IsSuspendableSpell(spell_id);
 }
 
-bool lua_is_cast_on_fade_duration_spell(uint16 spell_id)
+bool lua_is_cast_on_fade_duration_spell(int32 spell_id)
 {
 	return IsCastOnFadeDurationSpell(spell_id);
 }
 
-bool lua_is_distance_modifier_spell(uint16 spell_id)
+bool lua_is_distance_modifier_spell(int32 spell_id)
 {
 	return IsDistanceModifierSpell(spell_id);
 }
 
-bool lua_is_rest_allowed_spell(uint16 spell_id)
+bool lua_is_rest_allowed_spell(int32 spell_id)
 {
 	return IsRestAllowedSpell(spell_id);
 }
 
-bool lua_is_no_detrimental_spell_aggro_spell(uint16 spell_id)
+bool lua_is_no_detrimental_spell_aggro_spell(int32 spell_id)
 {
 	return IsNoDetrimentalSpellAggroSpell(spell_id);
 }
 
-bool lua_is_stackable_dot(uint16 spell_id)
+bool lua_is_stackable_dot(int32 spell_id)
 {
 	return IsStackableDOT(spell_id);
 }
 
-bool lua_is_short_duration_buff(uint16 spell_id)
+bool lua_is_short_duration_buff(int32 spell_id)
 {
 	return IsShortDurationBuff(spell_id);
 }
 
-bool lua_is_target_required_for_spell(uint16 spell_id)
+bool lua_is_target_required_for_spell(int32 spell_id)
 {
 	return IsTargetRequiredForSpell(spell_id);
 }
 
-bool lua_is_virus_spell(uint16 spell_id)
+bool lua_is_virus_spell(int32 spell_id)
 {
 	return IsVirusSpell(spell_id);
 }
 
-bool lua_is_valid_spell(uint16 spell_id)
+bool lua_is_valid_spell(int32 spell_id)
 {
 	return IsValidSpell(spell_id);
 }
@@ -5240,147 +5257,147 @@ bool lua_is_bard_only_stack_effect(int effect_id)
 	return IsBardOnlyStackEffect(effect_id);
 }
 
-bool lua_is_cast_while_invisible_spell(uint16 spell_id)
+bool lua_is_cast_while_invisible_spell(int32 spell_id)
 {
 	return IsCastWhileInvisibleSpell(spell_id);
 }
 
-bool lua_is_cast_restricted_spell(uint16 spell_id)
+bool lua_is_cast_restricted_spell(int32 spell_id)
 {
 	return IsCastRestrictedSpell(spell_id);
 }
 
-bool lua_is_cast_not_standing_spell(uint16 spell_id)
+bool lua_is_cast_not_standing_spell(int32 spell_id)
 {
 	return IsCastNotStandingSpell(spell_id);
 }
 
-bool lua_is_instrument_modifier_applied_to_spell_effect(uint16 spell_id, int effect_id)
+bool lua_is_instrument_modifier_applied_to_spell_effect(int32 spell_id, int effect_id)
 {
 	return IsInstrumentModifierAppliedToSpellEffect(spell_id, effect_id);
 }
 
-bool lua_is_blank_spell_effect(uint16 spell_id, int effect_index)
+bool lua_is_blank_spell_effect(int32 spell_id, int effect_index)
 {
 	return IsBlankSpellEffect(spell_id, effect_index);
 }
 
-uint16 lua_get_spell_trigger_spell_id(uint16 spell_id, int effect_id)
+int32 lua_get_spell_trigger_spell_id(int32 spell_id, int effect_id)
 {
 	return GetSpellTriggerSpellID(spell_id, effect_id);
 }
 
-uint8 lua_get_spell_minimum_level(uint16 spell_id)
+uint8 lua_get_spell_minimum_level(int32 spell_id)
 {
 	return GetSpellMinimumLevel(spell_id);
 }
 
-int lua_get_spell_resist_type(uint16 spell_id)
+int lua_get_spell_resist_type(int32 spell_id)
 {
 	return GetSpellResistType(spell_id);
 }
 
-int lua_get_spell_target_type(uint16 spell_id)
+int lua_get_spell_target_type(int32 spell_id)
 {
 	return GetSpellTargetType(spell_id);
 }
 
-int lua_get_spell_partial_melee_rune_reduction(uint16 spell_id)
+int lua_get_spell_partial_melee_rune_reduction(int32 spell_id)
 {
 	return GetSpellPartialMeleeRuneReduction(spell_id);
 }
 
-int lua_get_spell_partial_magic_rune_reduction(uint16 spell_id)
+int lua_get_spell_partial_magic_rune_reduction(int32 spell_id)
 {
 	return GetSpellPartialMagicRuneReduction(spell_id);
 }
 
-int lua_get_spell_partial_melee_rune_amount(uint16 spell_id)
+int lua_get_spell_partial_melee_rune_amount(int32 spell_id)
 {
 	return GetSpellPartialMeleeRuneAmount(spell_id);
 }
 
-int lua_get_spell_partial_magic_rune_amount(uint16 spell_id)
+int lua_get_spell_partial_magic_rune_amount(int32 spell_id)
 {
 	return GetSpellPartialMagicRuneAmount(spell_id);
 }
 
-int lua_get_spell_viral_minimum_spread_time(uint16 spell_id)
+int lua_get_spell_viral_minimum_spread_time(int32 spell_id)
 {
 	return GetSpellViralMinimumSpreadTime(spell_id);
 }
 
-int lua_get_spell_viral_maximum_spread_time(uint16 spell_id)
+int lua_get_spell_viral_maximum_spread_time(int32 spell_id)
 {
 	return GetSpellViralMaximumSpreadTime(spell_id);
 }
 
-int lua_get_spell_viral_spread_range(uint16 spell_id)
+int lua_get_spell_viral_spread_range(int32 spell_id)
 {
 	return GetSpellViralSpreadRange(spell_id);
 }
 
-int lua_get_spell_proc_limit_timer(uint16 spell_id, int proc_type)
+int lua_get_spell_proc_limit_timer(int32 spell_id, int proc_type)
 {
 	return GetSpellProcLimitTimer(spell_id, proc_type);
 }
 
-int lua_get_spell_effect_description_number(uint16 spell_id)
+int lua_get_spell_effect_description_number(int32 spell_id)
 {
 	return GetSpellEffectDescriptionNumber(spell_id);
 }
 
-int lua_get_spell_furious_bash(uint16 spell_id)
+int lua_get_spell_furious_bash(int32 spell_id)
 {
 	return GetSpellFuriousBash(spell_id);
 }
 
-bool lua_is_spell_usable_in_this_zone_type(uint16 spell_id)
+bool lua_is_spell_usable_in_this_zone_type(int32 spell_id)
 {
 	return IsSpellUsableInThisZoneType(spell_id, zone->GetZoneType());
 }
 
-bool lua_is_spell_usable_in_this_zone_type(uint16 spell_id, uint8 zone_type)
+bool lua_is_spell_usable_in_this_zone_type(int32 spell_id, uint8 zone_type)
 {
 	return IsSpellUsableInThisZoneType(spell_id, zone_type);
 }
 
-int lua_get_spell_effect_index(uint16 spell_id, int effect_id)
+int lua_get_spell_effect_index(int32 spell_id, int effect_id)
 {
 	return GetSpellEffectIndex(spell_id, effect_id);
 }
 
-int lua_calculate_poison_counters(uint16 spell_id)
+int lua_calculate_poison_counters(int32 spell_id)
 {
 	return CalculatePoisonCounters(spell_id);
 }
 
-int lua_calculate_disease_counters(uint16 spell_id)
+int lua_calculate_disease_counters(int32 spell_id)
 {
 	return CalculateDiseaseCounters(spell_id);
 }
 
-int lua_calculate_curse_counters(uint16 spell_id)
+int lua_calculate_curse_counters(int32 spell_id)
 {
 	return CalculateCurseCounters(spell_id);
 }
 
-int lua_calculate_corruption_counters(uint16 spell_id)
+int lua_calculate_corruption_counters(int32 spell_id)
 {
 	return CalculateCorruptionCounters(spell_id);
 }
 
-int lua_calculate_counters(uint16 spell_id)
+int lua_calculate_counters(int32 spell_id)
 {
 	return CalculateCounters(spell_id);
 }
 
-int8 lua_get_spell_resurrection_sickness_check(uint16 spell_id_one, uint16 spell_id_two)
+int8 lua_get_spell_resurrection_sickness_check(int32 spell_id_one, int32 spell_id_two)
 {
 	return GetSpellResurrectionSicknessCheck(spell_id_one, spell_id_two);
 }
 
-int lua_get_spell_nimbus_effect(uint16 spell_id)
+int lua_get_spell_nimbus_effect(int32 spell_id)
 {
 	return GetSpellNimbusEffect(spell_id);
 }
@@ -5408,12 +5425,12 @@ std::string lua_convert_money_to_string(luabind::adl::object table)
 	return Strings::Money(platinum, gold, silver, copper);
 }
 
-void lua_cast_spell(uint16 spell_id, uint16 target_id)
+void lua_cast_spell(int32 spell_id, uint16 target_id)
 {
 	quest_manager.castspell(spell_id, target_id);
 }
 
-void lua_self_cast(uint16 spell_id)
+void lua_self_cast(int32 spell_id)
 {
 	quest_manager.selfcast(spell_id);
 }
@@ -6191,8 +6208,8 @@ luabind::scope lua_register_general() {
 		luabind::def("rename", &lua_rename),
 		luabind::def("get_data_remaining", &lua_get_data_remaining),
 		luabind::def("get_item_stat", &lua_get_item_stat),
-		luabind::def("get_spell_stat", (int(*)(uint32,std::string))&lua_get_spell_stat),
-		luabind::def("get_spell_stat", (int(*)(uint32,std::string,uint8))&lua_get_spell_stat),
+		luabind::def("get_spell_stat", (int(*)(int32,std::string))&lua_get_spell_stat),
+		luabind::def("get_spell_stat", (int(*)(int32,std::string,uint8))&lua_get_spell_stat),
 		luabind::def("is_npc_spawned", &lua_is_npc_spawned),
 		luabind::def("count_spawned_npcs", &lua_count_spawned_npcs),
 		luabind::def("get_spell", &lua_get_spell),
@@ -6487,8 +6504,8 @@ luabind::scope lua_register_general() {
 		luabind::def("get_spell_proc_limit_timer", &lua_get_spell_proc_limit_timer),
 		luabind::def("get_spell_effect_description_number", &lua_get_spell_effect_description_number),
 		luabind::def("get_spell_furious_bash", &lua_get_spell_furious_bash),
-		luabind::def("is_spell_usable_in_this_zone_type", (bool(*)(uint16))&lua_is_spell_usable_in_this_zone_type),
-		luabind::def("is_spell_usable_in_this_zone_type", (bool(*)(uint16,uint8))&lua_is_spell_usable_in_this_zone_type),
+		luabind::def("is_spell_usable_in_this_zone_type", (bool(*)(int32))&lua_is_spell_usable_in_this_zone_type),
+		luabind::def("is_spell_usable_in_this_zone_type", (bool(*)(int32,uint8))&lua_is_spell_usable_in_this_zone_type),
 		luabind::def("get_spell_effect_index", &lua_get_spell_effect_index),
 		luabind::def("calculate_poison_counters", &lua_calculate_poison_counters),
 		luabind::def("calculate_disease_counters", &lua_calculate_disease_counters),
@@ -6703,16 +6720,16 @@ luabind::scope lua_register_general() {
 		luabind::def("world_wide_add_ldon_points", (void(*)(uint32,int))&lua_world_wide_add_ldon_points),
 		luabind::def("world_wide_add_ldon_points", (void(*)(uint32,int,uint8))&lua_world_wide_add_ldon_points),
 		luabind::def("world_wide_add_ldon_points", (void(*)(uint32,int,uint8,uint8))&lua_world_wide_add_ldon_points),
-		luabind::def("world_wide_add_ldon_loss", (void(*)(uint32))&lua_world_wide_add_ldon_win),
-		luabind::def("world_wide_add_ldon_loss", (void(*)(uint32,uint8))&lua_world_wide_add_ldon_win),
-		luabind::def("world_wide_add_ldon_loss", (void(*)(uint32,uint8,uint8))&lua_world_wide_add_ldon_win),
+		luabind::def("world_wide_add_ldon_win", (void(*)(uint32))&lua_world_wide_add_ldon_win),
+		luabind::def("world_wide_add_ldon_win", (void(*)(uint32,uint8))&lua_world_wide_add_ldon_win),
+		luabind::def("world_wide_add_ldon_win", (void(*)(uint32,uint8,uint8))&lua_world_wide_add_ldon_win),
 		luabind::def("world_wide_assign_task", (void(*)(uint32))&lua_world_wide_assign_task),
 		luabind::def("world_wide_assign_task", (void(*)(uint32,bool))&lua_world_wide_assign_task),
 		luabind::def("world_wide_assign_task", (void(*)(uint32,bool,uint8))&lua_world_wide_assign_task),
 		luabind::def("world_wide_assign_task", (void(*)(uint32,bool,uint8,uint8))&lua_world_wide_assign_task),
-		luabind::def("world_wide_cast_spell", (void(*)(uint32))&lua_world_wide_cast_spell),
-		luabind::def("world_wide_cast_spell", (void(*)(uint32,uint8))&lua_world_wide_cast_spell),
-		luabind::def("world_wide_cast_spell", (void(*)(uint32,uint8,uint8))&lua_world_wide_cast_spell),
+		luabind::def("world_wide_cast_spell", (void(*)(int32))&lua_world_wide_cast_spell),
+		luabind::def("world_wide_cast_spell", (void(*)(int32,uint8))&lua_world_wide_cast_spell),
+		luabind::def("world_wide_cast_spell", (void(*)(int32,uint8,uint8))&lua_world_wide_cast_spell),
 		luabind::def("world_wide_dialogue_window", (void(*)(const char*))&lua_world_wide_dialogue_window),
 		luabind::def("world_wide_dialogue_window", (void(*)(const char*,uint8))&lua_world_wide_dialogue_window),
 		luabind::def("world_wide_dialogue_window", (void(*)(const char*,uint8,uint8))&lua_world_wide_dialogue_window),
@@ -6743,9 +6760,9 @@ luabind::scope lua_register_general() {
 		luabind::def("world_wide_remove_ldon_win", (void(*)(uint32))&lua_world_wide_remove_ldon_win),
 		luabind::def("world_wide_remove_ldon_win", (void(*)(uint32,uint8))&lua_world_wide_remove_ldon_win),
 		luabind::def("world_wide_remove_ldon_win", (void(*)(uint32,uint8,uint8))&lua_world_wide_remove_ldon_win),
-		luabind::def("world_wide_remove_spell", (void(*)(uint32))&lua_world_wide_remove_spell),
-		luabind::def("world_wide_remove_spell", (void(*)(uint32,uint8))&lua_world_wide_remove_spell),
-		luabind::def("world_wide_remove_spell", (void(*)(uint32,uint8,uint8))&lua_world_wide_remove_spell),
+		luabind::def("world_wide_remove_spell", (void(*)(int32))&lua_world_wide_remove_spell),
+		luabind::def("world_wide_remove_spell", (void(*)(int32,uint8))&lua_world_wide_remove_spell),
+		luabind::def("world_wide_remove_spell", (void(*)(int32,uint8,uint8))&lua_world_wide_remove_spell),
 		luabind::def("world_wide_remove_task", (void(*)(uint32))&lua_world_wide_remove_task),
 		luabind::def("world_wide_remove_task", (void(*)(uint32,uint8))&lua_world_wide_remove_task),
 		luabind::def("world_wide_remove_task", (void(*)(uint32,uint8,uint8))&lua_world_wide_remove_task),
@@ -6865,7 +6882,9 @@ luabind::scope lua_register_events() {
 			luabind::value("trade", static_cast<int>(EVENT_TRADE)),
 			luabind::value("death", static_cast<int>(EVENT_DEATH)),
 			luabind::value("spawn", static_cast<int>(EVENT_SPAWN)),
+			luabind::value("attack", static_cast<int>(EVENT_ATTACK)),
 			luabind::value("combat", static_cast<int>(EVENT_COMBAT)),
+			luabind::value("aggro", static_cast<int>(EVENT_AGGRO)),
 			luabind::value("slay", static_cast<int>(EVENT_SLAY)),
 			luabind::value("waypoint_arrive", static_cast<int>(EVENT_WAYPOINT_ARRIVE)),
 			luabind::value("waypoint_depart", static_cast<int>(EVENT_WAYPOINT_DEPART)),
@@ -6901,8 +6920,8 @@ luabind::scope lua_register_events() {
 			luabind::value("spell_buff_tic", static_cast<int>(EVENT_SPELL_EFFECT_BUFF_TIC_CLIENT)),
 			luabind::value("spell_fade", static_cast<int>(EVENT_SPELL_FADE)),
 			luabind::value("spell_effect_translocate_complete", static_cast<int>(EVENT_SPELL_EFFECT_TRANSLOCATE_COMPLETE)),
-			luabind::value("combine_success ", static_cast<int>(EVENT_COMBINE_SUCCESS )),
-			luabind::value("combine_failure ", static_cast<int>(EVENT_COMBINE_FAILURE )),
+			luabind::value("combine_success", static_cast<int>(EVENT_COMBINE_SUCCESS )),
+			luabind::value("combine_failure", static_cast<int>(EVENT_COMBINE_FAILURE )),
 			luabind::value("item_click", static_cast<int>(EVENT_ITEM_CLICK)),
 			luabind::value("item_click_cast", static_cast<int>(EVENT_ITEM_CLICK_CAST)),
 			luabind::value("group_change", static_cast<int>(EVENT_GROUP_CHANGE)),
@@ -6949,8 +6968,10 @@ luabind::scope lua_register_events() {
 			luabind::value("language_skill_up", static_cast<int>(EVENT_LANGUAGE_SKILL_UP)),
 			luabind::value("alt_currency_merchant_buy", static_cast<int>(EVENT_ALT_CURRENCY_MERCHANT_BUY)),
 			luabind::value("alt_currency_merchant_sell", static_cast<int>(EVENT_ALT_CURRENCY_MERCHANT_SELL)),
+			luabind::value("merchant_open", static_cast<int>(EVENT_MERCHANT_OPEN)),
 			luabind::value("merchant_buy", static_cast<int>(EVENT_MERCHANT_BUY)),
 			luabind::value("merchant_sell", static_cast<int>(EVENT_MERCHANT_SELL)),
+			luabind::value("merchant_presell", static_cast<int>(EVENT_MERCHANT_PRESELL)),
 			luabind::value("inspect", static_cast<int>(EVENT_INSPECT)),
 			luabind::value("task_before_update", static_cast<int>(EVENT_TASK_BEFORE_UPDATE)),
 			luabind::value("aa_buy", static_cast<int>(EVENT_AA_BUY)),

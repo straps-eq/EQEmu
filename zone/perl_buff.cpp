@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "common/features.h"
 
 #ifdef EMBPERL_XS_CLASSES
@@ -75,7 +92,7 @@ int16 Perl_Buff_GetRootBreakChance(Buffs_Struct* self)
 	return self->RootBreakChance;
 }
 
-uint16 Perl_Buff_GetSpellID(Buffs_Struct* self)
+int32 Perl_Buff_GetSpellID(Buffs_Struct* self)
 {
 	return self->spellid;
 }
@@ -97,7 +114,7 @@ bool Perl_Buff_IsCasterClient(Buffs_Struct* self)
 
 bool Perl_Buff_IsPersistentBuff(Buffs_Struct* self)
 {
-	return self->persistant_buff;
+	return self->persistent_buff;
 }
 
 bool Perl_Buff_SendsClientUpdate(Buffs_Struct* self)

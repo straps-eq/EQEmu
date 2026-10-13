@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #include "common/database/database_update.h"
@@ -2157,7 +2174,53 @@ FROM bot_settings
 WHERE `setting_id` = 0
 AND `setting_type` = 0;
 )"
-		}
+		},
+		ManifestEntry{
+			.version = 9056,
+			.description = "some_new_migration.sql",
+			.check = "SHOW COLUMNS FROM `table_name` LIKE 'column_name'",
+			.condition = "empty",
+			.match = "",
+			.sql = R"(
+ALTER TABLE `bot_blocked_buffs` MODIFY COLUMN `spell_id` INTEGER NOT NULL;
+ALTER TABLE `bot_buffs` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `bot_pet_buffs` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `bot_pets` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `bot_spell_settings` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `bot_spells_entries` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `bot_timers` MODIFY COLUMN `spell_id` INTEGER NOT NULL DEFAULT 0;
+)"
+		},
+		ManifestEntry{
+			.version     = 9057,
+			.description = "2026_04_30_buffdurations.sql",
+			.check       = "SHOW COLUMNS FROM `bot_buffs` LIKE 'initial_duration'",
+			.condition   = "empty",
+			.match       = "",
+			.sql         = R"(
+ALTER TABLE `bot_buffs`
+	ADD COLUMN `caster_name` VARCHAR(64) NOT NULL DEFAULT '' AFTER `caster_level`,
+	ADD COLUMN `initial_duration` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `tics_remaining`;
+UPDATE `bot_buffs` SET `initial_duration` = `tics_remaining` WHERE TRUE;
+
+ALTER TABLE `bot_pet_buffs`
+	ADD COLUMN `caster_name` VARCHAR(64) NOT NULL DEFAULT '' AFTER `caster_level`,
+	CHANGE COLUMN `duration` `tics_remaining` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `caster_name`,
+	ADD COLUMN `initial_duration` INT(11) SIGNED NOT NULL DEFAULT 0 AFTER `tics_remaining`,
+	ADD COLUMN `counters` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `initial_duration`,
+	ADD COLUMN `numhits` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `counters`,
+   	ADD COLUMN `melee_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `numhits`,
+	ADD COLUMN `magic_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `melee_rune`,
+	ADD COLUMN `dot_rune` INT(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `magic_rune`,
+	ADD COLUMN `persistent` TINYINT(3) UNSIGNED NOT NULL DEFAULT 0 AFTER `dot_rune`,
+	ADD COLUMN `caston_x` INT(10) NOT NULL DEFAULT 0 AFTER `persistent`,
+	ADD COLUMN `caston_y` INT(10) NOT NULL DEFAULT 0 AFTER `caston_x`,
+	ADD COLUMN `caston_z` INT(10) NOT NULL DEFAULT 0 AFTER `caston_y`,
+	ADD COLUMN `extra_di_chance` INT(10) NOT NULL DEFAULT 0 AFTER `caston_z`,
+	ADD COLUMN `instrument_mod` INT(10) UNSIGNED NOT NULL DEFAULT 10 AFTER `extra_di_chance`;
+UPDATE `bot_pet_buffs` SET `initial_duration` = `tics_remaining` WHERE TRUE;
+)",
+		},
 // -- template; copy/paste this when you need to create a new entry
 //	ManifestEntry{
 //		.version = 9228,

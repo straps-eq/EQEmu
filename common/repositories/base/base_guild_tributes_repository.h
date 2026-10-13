@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -15,7 +32,6 @@
 #include "common/strings.h"
 
 #include <ctime>
-
 
 class BaseGuildTributesRepository {
 public:
@@ -140,13 +156,13 @@ public:
 		if (results.RowCount() == 1) {
 			GuildTributes e{};
 
-			e.guild_id          = static_cast<uint32_t>(strtoul(row[0], nullptr, 10));
-			e.tribute_id_1      = static_cast<uint32_t>(strtoul(row[1], nullptr, 10));
-			e.tribute_id_1_tier = static_cast<uint32_t>(strtoul(row[2], nullptr, 10));
-			e.tribute_id_2      = static_cast<uint32_t>(strtoul(row[3], nullptr, 10));
-			e.tribute_id_2_tier = static_cast<uint32_t>(strtoul(row[4], nullptr, 10));
-			e.time_remaining    = static_cast<uint32_t>(strtoul(row[5], nullptr, 10));
-			e.enabled           = static_cast<uint32_t>(strtoul(row[6], nullptr, 10));
+			e.guild_id          = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
+			e.tribute_id_1      = row[1] ? static_cast<uint32_t>(strtoul(row[1], nullptr, 10)) : 0;
+			e.tribute_id_1_tier = row[2] ? static_cast<uint32_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.tribute_id_2      = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
+			e.tribute_id_2_tier = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
+			e.time_remaining    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.enabled           = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
 
 			return e;
 		}
@@ -284,13 +300,13 @@ public:
 		for (auto row = results.begin(); row != results.end(); ++row) {
 			GuildTributes e{};
 
-			e.guild_id          = static_cast<uint32_t>(strtoul(row[0], nullptr, 10));
-			e.tribute_id_1      = static_cast<uint32_t>(strtoul(row[1], nullptr, 10));
-			e.tribute_id_1_tier = static_cast<uint32_t>(strtoul(row[2], nullptr, 10));
-			e.tribute_id_2      = static_cast<uint32_t>(strtoul(row[3], nullptr, 10));
-			e.tribute_id_2_tier = static_cast<uint32_t>(strtoul(row[4], nullptr, 10));
-			e.time_remaining    = static_cast<uint32_t>(strtoul(row[5], nullptr, 10));
-			e.enabled           = static_cast<uint32_t>(strtoul(row[6], nullptr, 10));
+			e.guild_id          = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
+			e.tribute_id_1      = row[1] ? static_cast<uint32_t>(strtoul(row[1], nullptr, 10)) : 0;
+			e.tribute_id_1_tier = row[2] ? static_cast<uint32_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.tribute_id_2      = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
+			e.tribute_id_2_tier = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
+			e.time_remaining    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.enabled           = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
 
 			all_entries.push_back(e);
 		}
@@ -315,13 +331,13 @@ public:
 		for (auto row = results.begin(); row != results.end(); ++row) {
 			GuildTributes e{};
 
-			e.guild_id          = static_cast<uint32_t>(strtoul(row[0], nullptr, 10));
-			e.tribute_id_1      = static_cast<uint32_t>(strtoul(row[1], nullptr, 10));
-			e.tribute_id_1_tier = static_cast<uint32_t>(strtoul(row[2], nullptr, 10));
-			e.tribute_id_2      = static_cast<uint32_t>(strtoul(row[3], nullptr, 10));
-			e.tribute_id_2_tier = static_cast<uint32_t>(strtoul(row[4], nullptr, 10));
-			e.time_remaining    = static_cast<uint32_t>(strtoul(row[5], nullptr, 10));
-			e.enabled           = static_cast<uint32_t>(strtoul(row[6], nullptr, 10));
+			e.guild_id          = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
+			e.tribute_id_1      = row[1] ? static_cast<uint32_t>(strtoul(row[1], nullptr, 10)) : 0;
+			e.tribute_id_1_tier = row[2] ? static_cast<uint32_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.tribute_id_2      = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
+			e.tribute_id_2_tier = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
+			e.time_remaining    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.enabled           = row[6] ? static_cast<uint32_t>(strtoul(row[6], nullptr, 10)) : 0;
 
 			all_entries.push_back(e);
 		}

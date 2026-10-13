@@ -1,0 +1,23 @@
+struct BaseResponse 
+{
+    u8 success;
+    u32 error_str_id;
+    char error_str[];
+};
+
+struct Packet {
+    BaseResponse base;
+    s8 unk1; //I think this is just padding
+    s8 unk2; //I think this is just padding
+    u32 lsid;
+    char key[];
+    s32 failed_attempts;
+    u8 show_player_count;
+    s32 unk3; // 0
+    s32 unk4; // 0
+    char username[];
+    char password[]; //I'm not sure this is correct, it feels like this might be some internal refresh token
+    char paddingEnd[2];
+};
+
+Packet p @ 0x00;

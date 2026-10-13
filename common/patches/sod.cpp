@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "sod.h"
 #include "sod_structs.h"
 
@@ -33,6 +31,8 @@
 #include "common/raid.h"
 #include "common/rulesys.h"
 #include "common/strings.h"
+#include "zone/client.h"
+#include "zone/mob.h"
 
 #include <iostream>
 #include <sstream>
@@ -63,7 +63,6 @@ namespace SoD
 	static inline spells::CastingSlot ServerToSoDCastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot SoDToServerCastingSlot(spells::CastingSlot slot);
 
-	static inline int ServerToSoDBuffSlot(int index);
 	static inline int SoDToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -295,7 +294,7 @@ namespace SoD
 		dest->FastQueuePacket(&in, ack_req);
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -308,7 +307,7 @@ namespace SoD
 		OUT(buff.duration);
 		OUT(buff.counters);
 		OUT(buff.player_id);
-		eq->slotid = ServerToSoDBuffSlot(emu->slotid);
+		OUT(slotid);
 		OUT(bufffade);
 
 		FINISH_ENCODE();
@@ -1377,38 +1376,6 @@ namespace SoD
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_PetBuffWindow)
-	{
-		EQApplicationPacket *in = *p;
-		*p = nullptr;
-
-		unsigned char *__emu_buffer = in->pBuffer;
-		PetBuff_Struct *emu = (PetBuff_Struct *)__emu_buffer;
-		int PacketSize = 7 + (emu->buffcount * 13);
-		in->size = PacketSize;
-		in->pBuffer = new unsigned char[in->size];
-		char *Buffer = (char *)in->pBuffer;
-
-		VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->petid);
-		VARSTRUCT_ENCODE_TYPE(uint16, Buffer, emu->buffcount);
-
-		for (unsigned int i = 0; i < PET_BUFF_COUNT; ++i)
-		{
-			if (emu->spellid[i])
-			{
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, i);
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->spellid[i]);
-				VARSTRUCT_ENCODE_TYPE(uint32, Buffer, emu->ticsremaining[i]);
-				VARSTRUCT_ENCODE_TYPE(uint8, Buffer, 0);	// This is a string. Name of the caster of the buff.
-			}
-		}
-
-		VARSTRUCT_ENCODE_TYPE(uint8, Buffer, emu->buffcount); // I think this is actually some sort of type
-
-		delete[] __emu_buffer;
-		dest->FastQueuePacket(&in, ack_req);
-	}
-
 	ENCODE(OP_PlayerProfile)
 	{
 		SETUP_DIRECT_ENCODE(PlayerProfile_Struct, structs::PlayerProfile_Struct);
@@ -2130,7 +2097,7 @@ namespace SoD
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -2144,35 +2111,6 @@ namespace SoD
 		eq->unknown005 = 163;
 		eq->unknown006 = 67;
 
-		FINISH_ENCODE();
-	}
-
-	ENCODE(OP_TargetBuffs)
-	{
-		SETUP_VAR_ENCODE(BuffIcon_Struct);
-
-		uint32 sz = 7 + (13 * emu->count);
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		uchar *ptr = __packet->pBuffer;
-		*((uint32*)ptr) = emu->entity_id;
-		ptr += sizeof(uint32);
-
-		*((uint16*)ptr) = emu->count;
-		ptr += sizeof(uint16);
-
-		for (uint16 i = 0; i < emu->count; ++i)
-		{
-			*((uint32*)ptr) = emu->entries[i].buff_slot;
-			ptr += sizeof(uint32);
-			*((uint32*)ptr) = emu->entries[i].spell_id;
-			ptr += sizeof(uint32);
-			*((uint32*)ptr) = emu->entries[i].tics_remaining;
-			ptr += sizeof(uint32);
-			ptr += 1;
-		}
 		FINISH_ENCODE();
 	}
 
@@ -2879,7 +2817,7 @@ namespace SoD
 		FINISH_DIRECT_DECODE();
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -4261,19 +4199,6 @@ namespace SoD
 		}
 	}
 
-	static inline int ServerToSoDBuffSlot(int index)
-	{
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-			       spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
-	}
-
 	static inline int SoDToServerBuffSlot(int index)
 	{
 		// we're a disc
@@ -4286,4 +4211,55 @@ namespace SoD
 		// we're a normal buff
 		return index; // as long as we guard against bad slots server side, we should be fine
 	}
+
+	std::unique_ptr<EQApplicationPacket> BuffComponent::RefreshBuffs(EmuOpcode opcode, Mob* mob, bool remove,
+		bool buff_timers_suspended, const std::vector<uint32_t>& slots) const
+	{
+		if (opcode == OP_RefreshPetBuffs || opcode == OP_RefreshTargetBuffs) {
+			Buffs_Struct* buffs = mob->GetBuffs();
+
+			size_t buffer_size = 7; // 7 bytes outside the list
+			std::vector<uint32_t> send_slots;
+			if (slots.empty()) {
+				for (uint32_t slot = 0; slot < mob->GetMaxTotalSlots(); ++slot)
+					if (buffs[slot].spellid > 1) {
+						buffer_size += 13 + strlen(buffs[slot].caster_name); // 13 includes the null terminator
+						send_slots.push_back(slot);
+					}
+			} else {
+				for (uint32_t slot : slots)
+					if (slot < mob->GetMaxTotalSlots() && buffs[slot].spellid > 1) {
+						buffer_size += 13 + strlen(buffs[slot].caster_name);
+						send_slots.push_back(slot);
+					}
+			}
+
+			// SoD only supports target and pet refresh, not self refresh packets
+			SerializeBuffer buffer(buffer_size);
+
+			buffer.WriteUInt32(mob->GetID());
+			buffer.WriteUInt16(send_slots.size());
+
+			for (uint32_t slot : send_slots) {
+				buffer.WriteUInt32(ServerToPatchBuffSlot(slot));
+				buffer.WriteInt32(remove ? -1 : buffs[slot].spellid);
+				buffer.WriteInt32(buffs[slot].ticsremaining);
+				buffer.WriteString(buffs[slot].caster_name);
+			}
+
+			buffer.WriteUInt8(opcode == OP_RefreshPetBuffs ? 2 : 0);
+
+			return std::make_unique<EQApplicationPacket>(opcode, std::move(buffer));
+		}
+
+		return nullptr;
+	}
+
+// 0 = self buff window, 1 = self target window, 2 = pet buff or target window, 4 = group, 5 = PC, 7 = NPC
+void BuffComponent::SetRefreshType(std::unique_ptr<EQApplicationPacket>& packet, uint8_t refresh_type) const
+{
+	if (packet)
+		packet->pBuffer[packet->size - 1] = refresh_type;
+}
+
 } /*SoD*/

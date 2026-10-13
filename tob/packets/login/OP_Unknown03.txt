@@ -1,0 +1,17 @@
+// 0x03
+// I'm not sure what this packet is, it sends right after play everquest response it sent client->server
+
+struct LoginBase
+{
+    u32 sequence_id;
+    u8 compressed;
+    u8 encrypt_type;
+    u32 unknown08;
+};
+
+struct Packet {
+    LoginBase base;
+    
+};
+
+Packet packet @0x00;

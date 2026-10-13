@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "rof.h"
 #include "rof_structs.h"
 
@@ -69,7 +67,6 @@ namespace RoF
 	static inline spells::CastingSlot ServerToRoFCastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot RoFToServerCastingSlot(spells::CastingSlot slot);
 
-	static inline int ServerToRoFBuffSlot(int index);
 	static inline int RoFToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -404,7 +401,7 @@ namespace RoF
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -412,8 +409,7 @@ namespace RoF
 		OUT(entityid);
 		OUT(buff.effect_type);
 		OUT(buff.level);
-		// just so we're 100% sure we get a 1.0f ...
-		eq->buff.bard_modifier = emu->buff.bard_modifier == 10 ? 1.0f : emu->buff.bard_modifier / 10.0f;
+		OUT(buff.bard_modifier);
 		OUT(buff.spellid);
 		OUT(buff.duration);
 		OUT(buff.player_id);
@@ -422,58 +418,12 @@ namespace RoF
 		OUT(buff.x);
 		OUT(buff.z);
 		// TODO: implement slot_data stuff
-		eq->slotid = ServerToRoFBuffSlot(emu->slotid);
+		OUT(slotid);
 
 		if (emu->bufffade == 1)
 			eq->bufffade = 1;
 		else
 			eq->bufffade = 2;
-
-		// Bit of a hack. OP_Buff appears to add/remove the buff while OP_BuffCreate adds/removes the actual buff icon
-		EQApplicationPacket *outapp = nullptr;
-		if (eq->bufffade == 1)
-		{
-			outapp = new EQApplicationPacket(OP_BuffCreate, 29);
-			outapp->WriteUInt32(emu->entityid);
-			outapp->WriteUInt32(0);	// tic timer
-			outapp->WriteUInt8(0);		// Type of OP_BuffCreate packet ?
-			outapp->WriteUInt16(1);		// 1 buff in this packet
-			outapp->WriteUInt32(eq->slotid);
-			outapp->WriteUInt32(0xffffffff);		// SpellID (0xffff to remove)
-			outapp->WriteUInt32(0);			// Duration
-			outapp->WriteUInt32(0);			// numhits
-			outapp->WriteUInt8(0);		// Caster name
-			outapp->WriteUInt8(0);		// Type
-		}
-		FINISH_ENCODE();
-
-		if (outapp)
-			dest->FastQueuePacket(&outapp);	// Send the OP_BuffCreate to remove the buff
-	}
-
-	ENCODE(OP_BuffCreate)
-	{
-		SETUP_VAR_ENCODE(BuffIcon_Struct);
-
-		uint32 sz = 12 + (17 * emu->count) + emu->name_lengths; // 17 includes nullterm
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		__packet->WriteUInt32(emu->entity_id);
-		__packet->WriteUInt32(emu->tic_timer);
-		__packet->WriteUInt8(emu->all_buffs);			// 1 indicates all buffs on the player (0 to add or remove a single buff)
-		__packet->WriteUInt16(emu->count);
-
-		for (int i = 0; i < emu->count; ++i)
-		{
-			__packet->WriteUInt32(emu->type == 0 ? ServerToRoFBuffSlot(emu->entries[i].buff_slot) : emu->entries[i].buff_slot);
-			__packet->WriteUInt32(emu->entries[i].spell_id);
-			__packet->WriteUInt32(emu->entries[i].tics_remaining);
-			__packet->WriteUInt32(emu->entries[i].num_hits); // Unknown
-			__packet->WriteString(emu->entries[i].caster);
-		}
-		__packet->WriteUInt8(emu->type); // Unknown
 
 		FINISH_ENCODE();
 	}
@@ -1860,38 +1810,6 @@ namespace RoF
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_PetBuffWindow)
-	{
-		// The format of the RoF packet is identical to the OP_BuffCreate packet.
-
-		SETUP_VAR_ENCODE(PetBuff_Struct);
-
-		uint32 sz = 12 + (17 * emu->buffcount);
-		__packet->size = sz;
-		__packet->pBuffer = new unsigned char[sz];
-		memset(__packet->pBuffer, 0, sz);
-
-		__packet->WriteUInt32(emu->petid);
-		__packet->WriteUInt32(0);		// PlayerID ?
-		__packet->WriteUInt8(1);		// 1 indicates all buffs on the pet (0 to add or remove a single buff)
-		__packet->WriteUInt16(emu->buffcount);
-
-		for (uint16 i = 0; i < PET_BUFF_COUNT; ++i)
-		{
-			if (emu->spellid[i])
-			{
-				__packet->WriteUInt32(i);
-				__packet->WriteUInt32(emu->spellid[i]);
-				__packet->WriteUInt32(emu->ticsremaining[i]);
-				__packet->WriteUInt32(0); // numhits
-				__packet->WriteString("");
-			}
-		}
-		__packet->WriteUInt8(0); // some sort of type
-
-		FINISH_ENCODE();
-	}
-
 	ENCODE(OP_PlayerProfile)
 	{
 		EQApplicationPacket *in = *p;
@@ -2181,7 +2099,7 @@ namespace RoF
 			outapp->WriteUInt32(emu->buffs[r].counters);
 			outapp->WriteUInt32(emu->buffs[r].duration);
 			outapp->WriteUInt8(emu->buffs[r].level);
-			outapp->WriteUInt32(emu->buffs[r].spellid);
+			outapp->WriteSInt32 (emu->buffs[r].spellid);
 			outapp->WriteUInt8(effect_type);			// Only ever seen 2
 			outapp->WriteUInt32(emu->buffs[r].num_hits);
 			outapp->WriteUInt32(0);
@@ -3223,7 +3141,7 @@ namespace RoF
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -3240,8 +3158,6 @@ namespace RoF
 
 		FINISH_ENCODE();
 	}
-
-	ENCODE(OP_TargetBuffs) { ENCODE_FORWARD(OP_BuffCreate); }
 
 	ENCODE(OP_TaskDescription)
 	{
@@ -4198,7 +4114,7 @@ namespace RoF
 		FINISH_DIRECT_DECODE();
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -6263,21 +6179,6 @@ namespace RoF
 		default: // we shouldn't have any issues with other slots ... just return something
 			return EQ::spells::CastingSlot::Discipline;
 		}
-	}
-
-	// these should be optimized out for RoF since they should all boil down to return index :P
-	// but lets leave it here for future proofing
-	static inline int ServerToRoFBuffSlot(int index)
-	{
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-			       spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
 	}
 
 	static inline int RoFToServerBuffSlot(int index)

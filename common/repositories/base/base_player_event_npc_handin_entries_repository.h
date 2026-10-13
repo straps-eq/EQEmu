@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -32,6 +49,7 @@ public:
 		uint32_t augment_4_id;
 		uint32_t augment_5_id;
 		uint32_t augment_6_id;
+		time_t   created_at;
 	};
 
 	static std::string PrimaryKey()
@@ -55,6 +73,7 @@ public:
 			"augment_4_id",
 			"augment_5_id",
 			"augment_6_id",
+			"created_at",
 		};
 	}
 
@@ -74,6 +93,7 @@ public:
 			"augment_4_id",
 			"augment_5_id",
 			"augment_6_id",
+			"UNIX_TIMESTAMP(created_at)",
 		};
 	}
 
@@ -127,6 +147,7 @@ public:
 		e.augment_4_id               = 0;
 		e.augment_5_id               = 0;
 		e.augment_6_id               = 0;
+		e.created_at                 = 0;
 
 		return e;
 	}
@@ -176,6 +197,7 @@ public:
 			e.augment_4_id               = row[10] ? static_cast<uint32_t>(strtoul(row[10], nullptr, 10)) : 0;
 			e.augment_5_id               = row[11] ? static_cast<uint32_t>(strtoul(row[11], nullptr, 10)) : 0;
 			e.augment_6_id               = row[12] ? static_cast<uint32_t>(strtoul(row[12], nullptr, 10)) : 0;
+			e.created_at                 = strtoll(row[13] ? row[13] : "-1", nullptr, 10);
 
 			return e;
 		}
@@ -221,6 +243,7 @@ public:
 		v.push_back(columns[10] + " = " + std::to_string(e.augment_4_id));
 		v.push_back(columns[11] + " = " + std::to_string(e.augment_5_id));
 		v.push_back(columns[12] + " = " + std::to_string(e.augment_6_id));
+		v.push_back(columns[13] + " = FROM_UNIXTIME(" + (e.created_at > 0 ? std::to_string(e.created_at) : "null") + ")");
 
 		auto results = db.QueryDatabase(
 			fmt::format(
@@ -255,6 +278,7 @@ public:
 		v.push_back(std::to_string(e.augment_4_id));
 		v.push_back(std::to_string(e.augment_5_id));
 		v.push_back(std::to_string(e.augment_6_id));
+		v.push_back("FROM_UNIXTIME(" + (e.created_at > 0 ? std::to_string(e.created_at) : "null") + ")");
 
 		auto results = db.QueryDatabase(
 			fmt::format(
@@ -297,6 +321,7 @@ public:
 			v.push_back(std::to_string(e.augment_4_id));
 			v.push_back(std::to_string(e.augment_5_id));
 			v.push_back(std::to_string(e.augment_6_id));
+			v.push_back("FROM_UNIXTIME(" + (e.created_at > 0 ? std::to_string(e.created_at) : "null") + ")");
 
 			insert_chunks.push_back("(" + Strings::Implode(",", v) + ")");
 		}
@@ -343,6 +368,7 @@ public:
 			e.augment_4_id               = row[10] ? static_cast<uint32_t>(strtoul(row[10], nullptr, 10)) : 0;
 			e.augment_5_id               = row[11] ? static_cast<uint32_t>(strtoul(row[11], nullptr, 10)) : 0;
 			e.augment_6_id               = row[12] ? static_cast<uint32_t>(strtoul(row[12], nullptr, 10)) : 0;
+			e.created_at                 = strtoll(row[13] ? row[13] : "-1", nullptr, 10);
 
 			all_entries.push_back(e);
 		}
@@ -380,6 +406,7 @@ public:
 			e.augment_4_id               = row[10] ? static_cast<uint32_t>(strtoul(row[10], nullptr, 10)) : 0;
 			e.augment_5_id               = row[11] ? static_cast<uint32_t>(strtoul(row[11], nullptr, 10)) : 0;
 			e.augment_6_id               = row[12] ? static_cast<uint32_t>(strtoul(row[12], nullptr, 10)) : 0;
+			e.created_at                 = strtoll(row[13] ? row[13] : "-1", nullptr, 10);
 
 			all_entries.push_back(e);
 		}
@@ -467,6 +494,7 @@ public:
 		v.push_back(std::to_string(e.augment_4_id));
 		v.push_back(std::to_string(e.augment_5_id));
 		v.push_back(std::to_string(e.augment_6_id));
+		v.push_back("FROM_UNIXTIME(" + (e.created_at > 0 ? std::to_string(e.created_at) : "null") + ")");
 
 		auto results = db.QueryDatabase(
 			fmt::format(
@@ -502,6 +530,7 @@ public:
 			v.push_back(std::to_string(e.augment_4_id));
 			v.push_back(std::to_string(e.augment_5_id));
 			v.push_back(std::to_string(e.augment_6_id));
+			v.push_back("FROM_UNIXTIME(" + (e.created_at > 0 ? std::to_string(e.created_at) : "null") + ")");
 
 			insert_chunks.push_back("(" + Strings::Implode(",", v) + ")");
 		}

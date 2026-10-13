@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -21,7 +38,7 @@ public:
 	struct CharacterSpells {
 		uint32_t id;
 		uint16_t slot_id;
-		uint16_t spell_id;
+		int32_t  spell_id;
 	};
 
 	static std::string PrimaryKey()
@@ -125,7 +142,7 @@ public:
 
 			e.id       = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.slot_id  = row[1] ? static_cast<uint16_t>(strtoul(row[1], nullptr, 10)) : 0;
-			e.spell_id = row[2] ? static_cast<uint16_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.spell_id = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 
 			return e;
 		}
@@ -252,7 +269,7 @@ public:
 
 			e.id       = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.slot_id  = row[1] ? static_cast<uint16_t>(strtoul(row[1], nullptr, 10)) : 0;
-			e.spell_id = row[2] ? static_cast<uint16_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.spell_id = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 
 			all_entries.push_back(e);
 		}
@@ -279,7 +296,7 @@ public:
 
 			e.id       = row[0] ? static_cast<uint32_t>(strtoul(row[0], nullptr, 10)) : 0;
 			e.slot_id  = row[1] ? static_cast<uint16_t>(strtoul(row[1], nullptr, 10)) : 0;
-			e.spell_id = row[2] ? static_cast<uint16_t>(strtoul(row[2], nullptr, 10)) : 0;
+			e.spell_id = row[2] ? static_cast<int32_t>(atoi(row[2])) : 0;
 
 			all_entries.push_back(e);
 		}

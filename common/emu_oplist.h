@@ -1,8 +1,23 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 // system use
 N(OP_ExploreUnknown),
 // start (please add new opcodes in descending order and re-order any name changes where applicable)
-N(OP_0x0193),
-N(OP_0x0347),
 N(OP_AAAction),
 N(OP_AAExpUpdate),
 N(OP_AcceptNewTask),
@@ -63,8 +78,8 @@ N(OP_Bind_Wound),
 N(OP_BlockedBuffs),
 N(OP_BoardBoat),
 N(OP_BookButton),
-N(OP_Buff),
-N(OP_BuffCreate),
+N(OP_BuffDefinition),
+N(OP_RefreshBuffs),
 N(OP_BuffRemoveRequest),
 N(OP_Bug),
 N(OP_BuyerItems),
@@ -359,10 +374,12 @@ N(OP_MercenaryDismiss),
 N(OP_MercenaryHire),
 N(OP_MercenarySuspendRequest),
 N(OP_MercenarySuspendResponse),
+N(OP_MercenarySwitch),
 N(OP_MercenaryTimer),
 N(OP_MercenaryTimerRequest),
 N(OP_MercenaryUnknown1),
 N(OP_MercenaryUnsuspendResponse),
+N(OP_MerchantBulkItems),
 N(OP_MobEnduranceUpdate),
 N(OP_MobHealth),
 N(OP_MobManaUpdate),
@@ -381,6 +398,7 @@ N(OP_MultiLineMsg),
 N(OP_NewSpawn),
 N(OP_NewTitlesAvailable),
 N(OP_NewZone),
+N(OP_NPCMoveUpdate),
 N(OP_OnLevelMessage),
 N(OP_OpenContainer),
 N(OP_OpenDiscordMerchant),
@@ -388,7 +406,7 @@ N(OP_OpenGuildTributeMaster),
 N(OP_OpenInventory),
 N(OP_OpenTributeMaster),
 N(OP_PDeletePetition),
-N(OP_PetBuffWindow),
+N(OP_RefreshPetBuffs),
 N(OP_PetCommands),
 N(OP_PetCommandState),
 N(OP_PetHoTT),
@@ -544,7 +562,7 @@ N(OP_Stun),
 N(OP_Surname),
 N(OP_SwapSpell),
 N(OP_SystemFingerprint),
-N(OP_TargetBuffs),
+N(OP_RefreshTargetBuffs),
 N(OP_TargetCommand),
 N(OP_TargetHoTT),
 N(OP_TargetMouse),

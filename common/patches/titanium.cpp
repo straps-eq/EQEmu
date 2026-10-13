@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "titanium.h"
 #include "titanium_structs.h"
 
@@ -34,6 +32,8 @@
 #include "common/raid.h"
 #include "common/rulesys.h"
 #include "common/strings.h"
+#include "zone/mob.h"
+#include "zone/string_ids.h"
 
 #include <sstream>
 
@@ -63,7 +63,6 @@ namespace Titanium
 	static inline spells::CastingSlot ServerToTitaniumCastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot TitaniumToServerCastingSlot(spells::CastingSlot slot, uint32 item_location);
 
-	static inline int ServerToTitaniumBuffSlot(int index);
 	static inline int TitaniumToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -327,7 +326,7 @@ namespace Titanium
 		}
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -340,7 +339,7 @@ namespace Titanium
 		OUT(buff.duration);
 		OUT(buff.counters);
 		OUT(buff.player_id);
-		eq->slotid = ServerToTitaniumBuffSlot(emu->slotid);
+		OUT(slotid);
 		OUT(bufffade);
 
 		FINISH_ENCODE();
@@ -1308,28 +1307,6 @@ namespace Titanium
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_PetBuffWindow)
-	{
-		ENCODE_LENGTH_EXACT(PetBuff_Struct);
-		SETUP_DIRECT_ENCODE(PetBuff_Struct, PetBuff_Struct);
-
-		OUT(petid);
-		OUT(buffcount);
-
-		int EQBuffSlot = 0; // do we really want to shuffle them around like this?
-
-		for (uint32 EmuBuffSlot = 0; EmuBuffSlot < PET_BUFF_COUNT; ++EmuBuffSlot)
-		{
-			if (emu->spellid[EmuBuffSlot])
-			{
-				eq->spellid[EQBuffSlot] = emu->spellid[EmuBuffSlot];
-				eq->ticsremaining[EQBuffSlot++] = emu->ticsremaining[EmuBuffSlot];
-			}
-		}
-
-		FINISH_ENCODE();
-	}
-
 	ENCODE(OP_PlayerProfile)
 	{
 		SETUP_DIRECT_ENCODE(PlayerProfile_Struct, structs::PlayerProfile_Struct);
@@ -1993,7 +1970,7 @@ namespace Titanium
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -2541,7 +2518,7 @@ namespace Titanium
 		}
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -3895,19 +3872,6 @@ namespace Titanium
 		}
 	}
 
-	static inline int ServerToTitaniumBuffSlot(int index)
-	{
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-			       spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
-	}
-
 	static inline int TitaniumToServerBuffSlot(int index)
 	{
 		// we're a disc
@@ -3920,4 +3884,178 @@ namespace Titanium
 		// we're a normal buff
 		return index; // as long as we guard against bad slots server side, we should be fine
 	}
+
+std::unique_ptr<EQApplicationPacket> MessageComponent::Simple(uint32_t color, uint32_t id) const
+{
+	uint32_t string_id = ResolveID(id);
+	if (string_id > 0) {
+		auto outapp = std::make_unique<EQApplicationPacket>(OP_SimpleMessage, sizeof(SimpleMessage_Struct));
+		auto* sms = reinterpret_cast<SimpleMessage_Struct*>(outapp->pBuffer);
+		sms->string_id = string_id;
+		sms->color = color;
+		sms->unknown8 = 0;
+
+		return outapp;
+	}
+
+	return nullptr;
+}
+
+std::unique_ptr<EQApplicationPacket> MessageComponent::Formatted(uint32_t color, uint32_t id,
+	const FormattedArgs& args) const
+{
+	uint32_t string_id = ResolveID(id);
+	if (string_id > 0) {
+		std::array<const char*, 9> resolved_args = args;
+		ResolveArguments(id, resolved_args);
+		if (!resolved_args[0])
+			return Simple(color, id);
+
+		SerializeBuffer buf(20);
+		buf.WriteUInt32(0);
+		buf.WriteUInt32(string_id);
+		buf.WriteUInt32(color);
+
+		for (const auto* a : resolved_args) {
+			if (a != nullptr)
+				buf.WriteString(a);
+		}
+
+		buf.WriteUInt8(0);
+
+		return std::make_unique<EQApplicationPacket>(OP_FormattedMessage, std::move(buf));
+	}
+
+	return nullptr;
+}
+
+std::unique_ptr<EQApplicationPacket> MessageComponent::InterruptSpell(uint32_t message, uint32_t spawn_id,
+	const char* spell_link) const
+{
+	auto outapp = std::make_unique<EQApplicationPacket>(OP_InterruptCast, sizeof(InterruptCast_Struct));
+	auto ic = reinterpret_cast<InterruptCast_Struct*>(outapp->pBuffer);
+	ic->messageid = ResolveID(message);
+	ic->spawnid = spawn_id;
+	outapp->priority = 5;
+
+	return outapp;
+}
+
+std::unique_ptr<EQApplicationPacket> MessageComponent::InterruptSpellOther(Mob* sender, uint32_t message, uint32_t spawn_id,
+	const char* name, const char* spell_link) const
+{
+	auto outapp = std::make_unique<EQApplicationPacket>(OP_InterruptCast, sizeof(InterruptCast_Struct) + strlen(name) + 1);
+	auto ic = reinterpret_cast<InterruptCast_Struct*>(outapp->pBuffer);
+	ic->messageid = ResolveID(message);
+	ic->spawnid = spawn_id;
+	strcpy(ic->message, spell_link);
+	return outapp;
+}
+
+// A value of 0 means that the string isn't mapped in this client, valid string ids start at 1
+uint32_t MessageComponent::ResolveID(uint32_t id) const
+{
+	// passthrough — string IDs are defined at the base client level;
+	// override in patches where IDs need remapping
+	return id;
+}
+
+void MessageComponent::ResolveArguments(uint32_t id, std::array<const char*, 9>& args) const
+{
+	switch (id) {
+	case SPELL_FIZZLE:
+	case MISS_NOTE:
+		args[0] = nullptr; // the 0th (and only) argument here is the spell link, not supported before TOB
+		break;
+	case SPELL_FIZZLE_OTHER:
+	case MISSED_NOTE_OTHER:
+		args[1] = nullptr; // the 1st argument here is the spell link, not supported before TOB
+		break;
+	default:
+		break;
+	}
+}
+
+std::unique_ptr<EQApplicationPacket> BuffComponent::BuffDefinition(Mob* mob, const Buffs_Struct& buff, uint32_t slot,
+	bool fade) const
+{
+	auto outapp = std::make_unique<EQApplicationPacket>(OP_BuffDefinition, sizeof(SpellBuffPacket_Struct));
+	auto sbf = reinterpret_cast<SpellBuffPacket_Struct*>(outapp->pBuffer);
+
+	sbf->entityid = mob->GetID();
+
+	sbf->buff.effect_type = 2;
+
+	sbf->buff.level = buff.casterlevel > 0 ? buff.casterlevel : mob->GetLevel();
+	sbf->buff.bard_modifier = buff.instrument_mod;
+	sbf->buff.spellid = buff.spellid;
+	sbf->buff.duration = buff.ticsremaining;
+	if (buff.dot_rune)
+		sbf->buff.counters = buff.dot_rune;
+	else if (buff.magic_rune)
+		sbf->buff.counters = buff.magic_rune;
+	else if (buff.melee_rune)
+		sbf->buff.counters = buff.melee_rune;
+	else if (buff.counters)
+		sbf->buff.counters = buff.counters;
+	sbf->buff.player_id = buff.casterid;
+	sbf->buff.num_hits = buff.hit_number;
+	sbf->buff.y = buff.caston_y;
+	sbf->buff.x = buff.caston_x;
+	sbf->buff.z = buff.caston_z;
+
+	sbf->slotid = ServerToPatchBuffSlot(slot);
+	sbf->bufffade = fade;
+
+	return outapp;
+}
+
+std::unique_ptr<EQApplicationPacket> BuffComponent::RefreshBuffs(EmuOpcode opcode, Mob* mob, bool remove,
+	bool buff_timers_suspended, const std::vector<uint32_t>& slots) const
+{
+	// titanium only sends refresh for pet buffs
+	if (opcode == OP_RefreshPetBuffs) {
+		Buffs_Struct* buffs = mob->GetBuffs();
+
+		std::vector<uint32_t> send_slots;
+		if (slots.empty()) {
+			for (uint32_t slot = 0; slot < mob->GetMaxTotalSlots(); ++slot)
+				if (buffs[slot].spellid > 1)
+					send_slots.push_back(slot);
+		} else {
+			for (uint32_t slot : slots)
+				if (slot < mob->GetMaxTotalSlots() && buffs[slot].spellid > 1)
+					send_slots.push_back(slot);
+		}
+
+		auto outapp = std::make_unique<EQApplicationPacket>(OP_RefreshPetBuffs, sizeof(PetBuff_Struct));
+		auto pbs = reinterpret_cast<PetBuff_Struct*>(outapp->pBuffer);
+		memset(outapp->pBuffer, 0, outapp->size);
+
+		pbs->petid = mob->GetID();
+		int MaxSlots = mob->GetMaxTotalSlots();
+		if (MaxSlots > PET_BUFF_COUNT)
+			MaxSlots = PET_BUFF_COUNT;
+
+		int count = 0;
+		for (uint32_t slot : send_slots) {
+			if (slot < MaxSlots) {
+				pbs->spellid[slot] = buffs[slot].spellid;
+				pbs->ticsremaining[slot] = buffs[slot].ticsremaining;
+				++count;
+			}
+		}
+
+		pbs->buffcount = count;
+
+		return outapp;
+	}
+
+	return nullptr;
+}
+
+bool BuffComponent::NeedsWearMessage() const { return true; }
+
+void BuffComponent::SetRefreshType(std::unique_ptr<EQApplicationPacket>& packet, uint8_t refresh_type) const {}
+
 } /*Titanium*/

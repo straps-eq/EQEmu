@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -181,6 +198,16 @@ public:
 			e.fast_heals          = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.adaptive_targeting  = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.casting_override    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.safe_hp_base        = row[6] ? (strtof(row[6], nullptr) > 0.0f ? strtof(row[6], nullptr) : 0) : 0;
+			e.safe_hp_cloth       = row[7] ? (strtof(row[7], nullptr) > 0.0f ? strtof(row[7], nullptr) : 0) : 0;
+			e.safe_hp_leather     = row[8] ? (strtof(row[8], nullptr) > 0.0f ? strtof(row[8], nullptr) : 0) : 0;
+			e.safe_hp_chain       = row[9] ? (strtof(row[9], nullptr) > 0.0f ? strtof(row[9], nullptr) : 0) : 0;
+			e.safe_hp_plate       = row[10] ? (strtof(row[10], nullptr) > 0.0f ? strtof(row[10], nullptr) : 0) : 0;
+			e.critical_hp_base    = row[11] ? (strtof(row[11], nullptr) > 0.0f ? strtof(row[11], nullptr) : 0) : 0;
+			e.critical_hp_cloth   = row[12] ? (strtof(row[12], nullptr) > 0.0f ? strtof(row[12], nullptr) : 0) : 0;
+			e.critical_hp_leather = row[13] ? (strtof(row[13], nullptr) > 0.0f ? strtof(row[13], nullptr) : 0) : 0;
+			e.critical_hp_chain   = row[14] ? (strtof(row[14], nullptr) > 0.0f ? strtof(row[14], nullptr) : 0) : 0;
+			e.critical_hp_plate   = row[15] ? (strtof(row[15], nullptr) > 0.0f ? strtof(row[15], nullptr) : 0) : 0;
 
 			return e;
 		}
@@ -350,6 +377,16 @@ public:
 			e.fast_heals          = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.adaptive_targeting  = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.casting_override    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.safe_hp_base        = row[6] ? (strtof(row[6], nullptr) > 0.0f ? strtof(row[6], nullptr) : 0) : 0;
+			e.safe_hp_cloth       = row[7] ? (strtof(row[7], nullptr) > 0.0f ? strtof(row[7], nullptr) : 0) : 0;
+			e.safe_hp_leather     = row[8] ? (strtof(row[8], nullptr) > 0.0f ? strtof(row[8], nullptr) : 0) : 0;
+			e.safe_hp_chain       = row[9] ? (strtof(row[9], nullptr) > 0.0f ? strtof(row[9], nullptr) : 0) : 0;
+			e.safe_hp_plate       = row[10] ? (strtof(row[10], nullptr) > 0.0f ? strtof(row[10], nullptr) : 0) : 0;
+			e.critical_hp_base    = row[11] ? (strtof(row[11], nullptr) > 0.0f ? strtof(row[11], nullptr) : 0) : 0;
+			e.critical_hp_cloth   = row[12] ? (strtof(row[12], nullptr) > 0.0f ? strtof(row[12], nullptr) : 0) : 0;
+			e.critical_hp_leather = row[13] ? (strtof(row[13], nullptr) > 0.0f ? strtof(row[13], nullptr) : 0) : 0;
+			e.critical_hp_chain   = row[14] ? (strtof(row[14], nullptr) > 0.0f ? strtof(row[14], nullptr) : 0) : 0;
+			e.critical_hp_plate   = row[15] ? (strtof(row[15], nullptr) > 0.0f ? strtof(row[15], nullptr) : 0) : 0;
 
 			all_entries.push_back(e);
 		}
@@ -380,6 +417,16 @@ public:
 			e.fast_heals          = row[3] ? static_cast<uint32_t>(strtoul(row[3], nullptr, 10)) : 0;
 			e.adaptive_targeting  = row[4] ? static_cast<uint32_t>(strtoul(row[4], nullptr, 10)) : 0;
 			e.casting_override    = row[5] ? static_cast<uint32_t>(strtoul(row[5], nullptr, 10)) : 0;
+			e.safe_hp_base        = row[6] ? (strtof(row[6], nullptr) > 0.0f ? strtof(row[6], nullptr) : 0) : 0;
+			e.safe_hp_cloth       = row[7] ? (strtof(row[7], nullptr) > 0.0f ? strtof(row[7], nullptr) : 0) : 0;
+			e.safe_hp_leather     = row[8] ? (strtof(row[8], nullptr) > 0.0f ? strtof(row[8], nullptr) : 0) : 0;
+			e.safe_hp_chain       = row[9] ? (strtof(row[9], nullptr) > 0.0f ? strtof(row[9], nullptr) : 0) : 0;
+			e.safe_hp_plate       = row[10] ? (strtof(row[10], nullptr) > 0.0f ? strtof(row[10], nullptr) : 0) : 0;
+			e.critical_hp_base    = row[11] ? (strtof(row[11], nullptr) > 0.0f ? strtof(row[11], nullptr) : 0) : 0;
+			e.critical_hp_cloth   = row[12] ? (strtof(row[12], nullptr) > 0.0f ? strtof(row[12], nullptr) : 0) : 0;
+			e.critical_hp_leather = row[13] ? (strtof(row[13], nullptr) > 0.0f ? strtof(row[13], nullptr) : 0) : 0;
+			e.critical_hp_chain   = row[14] ? (strtof(row[14], nullptr) > 0.0f ? strtof(row[14], nullptr) : 0) : 0;
+			e.critical_hp_plate   = row[15] ? (strtof(row[15], nullptr) > 0.0f ? strtof(row[15], nullptr) : 0) : 0;
 
 			all_entries.push_back(e);
 		}

@@ -1,22 +1,20 @@
-/*	EQEMu: Everquest Server Emulator
+/*	EQEmu: EQEmulator
 
-	Copyright (C) 2001-2016 EQEMu Development Team (http://eqemulator.net)
+	Copyright (C) 2001-2026 EQEmu Development Team
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; version 2 of the License.
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY except by those people which sell it, which
-	are required to give you total support for your newly bought product;
-	without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-	A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "sof.h"
 #include "sof_structs.h"
 
@@ -62,7 +60,6 @@ namespace SoF
 	static inline spells::CastingSlot ServerToSoFCastingSlot(EQ::spells::CastingSlot slot);
 	static inline EQ::spells::CastingSlot SoFToServerCastingSlot(spells::CastingSlot slot, uint32 item_location);
 
-	static inline int ServerToSoFBuffSlot(int index);
 	static inline int SoFToServerBuffSlot(int index);
 
 	void Register(EQStreamIdentifier &into)
@@ -274,7 +271,7 @@ namespace SoF
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_Buff)
+	ENCODE(OP_BuffDefinition)
 	{
 		ENCODE_LENGTH_EXACT(SpellBuffPacket_Struct);
 		SETUP_DIRECT_ENCODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -287,7 +284,7 @@ namespace SoF
 		OUT(buff.duration);
 		OUT(buff.counters);
 		OUT(buff.player_id);
-		eq->slotid = ServerToSoFBuffSlot(emu->slotid);
+		eq->slotid = SoFToServerBuffSlot(emu->slotid);
 		OUT(bufffade);
 
 		FINISH_ENCODE();
@@ -1051,28 +1048,6 @@ namespace SoF
 		FINISH_ENCODE();
 	}
 
-	ENCODE(OP_PetBuffWindow)
-	{
-		ENCODE_LENGTH_EXACT(PetBuff_Struct);
-		SETUP_DIRECT_ENCODE(PetBuff_Struct, PetBuff_Struct);
-
-		OUT(petid);
-		OUT(buffcount);
-
-		int EQBuffSlot = 0; // do we really want to shuffle them around like this?
-
-		for (uint32 EmuBuffSlot = 0; EmuBuffSlot < PET_BUFF_COUNT; ++EmuBuffSlot)
-		{
-			if (emu->spellid[EmuBuffSlot])
-			{
-				eq->spellid[EQBuffSlot] = emu->spellid[EmuBuffSlot];
-				eq->ticsremaining[EQBuffSlot++] = emu->ticsremaining[EmuBuffSlot];
-			}
-		}
-
-		FINISH_ENCODE();
-	}
-
 	ENCODE(OP_PlayerProfile)
 	{
 		SETUP_DIRECT_ENCODE(PlayerProfile_Struct, structs::PlayerProfile_Struct);
@@ -1787,7 +1762,7 @@ namespace SoF
 
 		buf.WriteString(new_message);
 
-		auto outapp = new EQApplicationPacket(OP_SpecialMesg, buf);
+		auto outapp = new EQApplicationPacket(OP_SpecialMesg, std::move(buf));
 
 		dest->FastQueuePacket(&outapp, ack_req);
 		delete in;
@@ -2323,7 +2298,7 @@ namespace SoF
 		FINISH_DIRECT_DECODE();
 	}
 
-	DECODE(OP_Buff)
+	DECODE(OP_BuffDefinition)
 	{
 		DECODE_LENGTH_EXACT(structs::SpellBuffPacket_Struct);
 		SETUP_DIRECT_DECODE(SpellBuffPacket_Struct, structs::SpellBuffPacket_Struct);
@@ -2336,7 +2311,7 @@ namespace SoF
 		IN(buff.duration);
 		IN(buff.counters);
 		IN(buff.player_id);
-		emu->slotid = SoFToServerBuffSlot(eq->slotid);
+		IN(slotid);
 		IN(bufffade);
 
 		FINISH_DIRECT_DECODE();
@@ -3657,18 +3632,6 @@ namespace SoF
 			default: // we shouldn't have any issues with other slots ... just return something
 				return EQ::spells::CastingSlot::Discipline;
 		}
-	}
-
-	static inline int ServerToSoFBuffSlot(int index) {
-		// we're a disc
-		if (index >= EQ::spells::LONG_BUFFS + EQ::spells::SHORT_BUFFS)
-			return index - EQ::spells::LONG_BUFFS - EQ::spells::SHORT_BUFFS +
-				   spells::LONG_BUFFS + spells::SHORT_BUFFS;
-		// we're a song
-		if (index >= EQ::spells::LONG_BUFFS)
-			return index - EQ::spells::LONG_BUFFS + spells::LONG_BUFFS;
-		// we're a normal buff
-		return index; // as long as we guard against bad slots server side, we should be fine
 	}
 
 	static inline int SoFToServerBuffSlot(int index)

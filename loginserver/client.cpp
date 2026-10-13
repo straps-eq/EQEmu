@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "client.h"
 #include "login_server.h"
 #include "encryption.h"
@@ -73,6 +90,9 @@ bool Client::Process()
 				SendPlayToWorld((const char *) app->pBuffer);
 				break;
 			}
+			case OP_SystemFingerprint: {
+				break;
+			}
 		}
 
 		delete app;
@@ -89,16 +109,19 @@ void Client::HandleSessionReady(const char *data, unsigned int size)
 		return;
 	}
 
-	if (size < sizeof(unsigned int)) {
+	if (size < sizeof(int32)) {
 		LogError("Session ready was too small");
 		return;
 	}
+
+	//existing sequence id
+	int32 sequence_in = *(int32*)data;
 
 	m_client_status = cs_waiting_for_login;
 
 	auto *outapp = new EQApplicationPacket(OP_ChatMessage, sizeof(LoginHandShakeReply));
 	auto buf     = reinterpret_cast<LoginHandShakeReply *>(outapp->pBuffer);
-	buf->base_header.sequence    = 0x02;
+	buf->base_header.sequence    = sequence_in;
 	buf->base_reply.success      = true;
 	buf->base_reply.error_str_id = 0x65; // 101 "No Error"
 
@@ -416,20 +439,13 @@ void Client::SendPlayResponse(EQApplicationPacket *outapp)
 
 void Client::GenerateRandomLoginKey()
 {
-	m_key.clear();
-	int count = 0;
-	while (count < 10) {
-		static const char key_selection[] =
-							  {
-								  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-								  'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-								  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-								  'Y', 'Z', '0', '1', '2', '3', '4', '5',
-								  '6', '7', '8', '9'
-							  };
+	static constexpr std::string_view key_selection = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+	constexpr size_t key_length = 10;
 
-		m_key.append((const char *) &key_selection[m_random.Int(0, 35)], 1);
-		count++;
+	m_key.clear();
+	m_key.reserve(key_length);
+	for (size_t i = 0; i < key_length; ++i) {
+		m_key += key_selection[m_random.Int(0, key_selection.size() - 1)];
 	}
 }
 
@@ -478,16 +494,17 @@ void Client::SendFailedLogin()
 
 	// unencrypted
 	LoginBaseMessage h{};
-	h.sequence     = m_login_base_message.sequence; // login (3)
+	h.sequence     = m_login_base_message.sequence;
 	h.encrypt_type = m_login_base_message.encrypt_type;
+	h.unk3         = m_login_base_message.unk3;
 
-	// encrypted
-	PlayerLoginReply r{};
-	r.base_reply.success      = false;
-	r.base_reply.error_str_id = 105; // Error - The username and/or password were not valid
+	PlayerLoginReply r = m_client_version == cv_tob ? PlayerLoginReply(PlayerLoginReplyTOB{}) : PlayerLoginReply(PlayerLoginReplyOld{});
+	r.set_error_code(LS::ErrStr::ERROR_INVALID_CREDS);
+	// We don't care what key we send, just that it exists and is 10 characters so that we do not shift
+	r.set_key("InvalidKey");
 
-	char encrypted_buffer[80] = {0};
-	auto rc                   = eqcrypt_block((const char *) &r, sizeof(r), encrypted_buffer, 1);
+	char encrypted_buffer[80] = { 0 };
+	auto rc = eqcrypt_block(r.data(), r.size(), encrypted_buffer, 1);
 	if (rc == nullptr) {
 		LogDebug("Failed to encrypt eqcrypt block for failed login");
 	}
@@ -498,6 +515,7 @@ void Client::SendFailedLogin()
 	outapp.WriteData(&encrypted_buffer, sizeof(encrypted_buffer));
 
 	m_connection->QueuePacket(&outapp);
+
 	m_client_status = cs_failed_to_login;
 }
 
@@ -585,40 +603,33 @@ void Client::DoSuccessfulLogin(LoginAccountsRepository::LoginAccounts &a)
 
 	// unencrypted
 	LoginBaseMessage h{};
-	h.sequence     = m_login_base_message.sequence;
-	h.compressed   = false;
+	h.sequence = m_login_base_message.sequence;
+	h.compressed = false;
 	h.encrypt_type = m_login_base_message.encrypt_type;
-	h.unk3         = m_login_base_message.unk3;
+	h.unk3 = m_login_base_message.unk3;
 
 	// not serializing any of the variable length strings so just use struct directly
-	PlayerLoginReply r{};
-	r.base_reply.success         = true;
-	r.base_reply.error_str_id    = 101; // No Error
-	r.unk1                       = 0;
-	r.unk2                       = 0;
-	r.lsid                       = a.id;
-	r.failed_attempts            = 0;
-	r.show_player_count          = server.options.IsShowPlayerCountEnabled();
-	r.offer_min_days             = 99;
-	r.offer_min_views            = -1;
-	r.offer_cooldown_minutes     = 0;
-	r.web_offer_number           = 0;
-	r.web_offer_min_days         = 99;
-	r.web_offer_min_views        = -1;
-	r.web_offer_cooldown_minutes = 0;
-	memcpy(r.key, m_key.c_str(), m_key.size());
+	PlayerLoginReply r = m_client_version == cv_tob ? PlayerLoginReply(PlayerLoginReplyTOB{}) : PlayerLoginReply(PlayerLoginReplyOld{});
 
-	SendExpansionPacketData(r);
+	r.set_success(true);
+	r.set_error_code(LS::ErrStr::ERROR_NONE);
+	r.set_lsid(a.id);
+	r.set_show_player_count(server.options.IsShowPlayerCountEnabled());
+	r.set_key(m_key);
 
-	char encrypted_buffer[80] = {0};
+	if (m_client_version != cv_tob) {
+		SendExpansionPacketData(r.old());
+	}
 
-	auto rc = eqcrypt_block((const char *) &r, sizeof(r), encrypted_buffer, 1);
+	char encrypted_buffer[80] = { 0 };
+
+	auto rc = eqcrypt_block(r.data(), r.size(), encrypted_buffer, 1);
 	if (rc == nullptr) {
 		LogDebug("Failed to encrypt eqcrypt block");
 	}
 
 	constexpr int outsize = sizeof(LoginBaseMessage) + sizeof(encrypted_buffer);
-	auto          outapp  = std::make_unique<EQApplicationPacket>(OP_LoginAccepted, outsize);
+	auto          outapp = std::make_unique<EQApplicationPacket>(OP_LoginAccepted, outsize);
 	outapp->WriteData(&h, sizeof(h));
 	outapp->WriteData(&encrypted_buffer, sizeof(encrypted_buffer));
 
@@ -627,7 +638,7 @@ void Client::DoSuccessfulLogin(LoginAccountsRepository::LoginAccounts &a)
 	m_client_status = cs_logged_in;
 }
 
-void Client::SendExpansionPacketData(PlayerLoginReply &plrs)
+void Client::SendExpansionPacketData(PlayerLoginReplyOld &plrs)
 {
 	SerializeBuffer buf;
 	//from eqlsstr_us.txt id of each expansion, excluding 'Everquest'
@@ -654,7 +665,7 @@ void Client::SendExpansionPacketData(PlayerLoginReply &plrs)
 
 			//generate expansion data
 			for (int i = 0; i < 19; i++) {
-				buf.WriteInt32(i);                                                    //sequenctial number
+				buf.WriteInt32(i);                                                    //sequential number
 				buf.WriteInt32((expansion & (1 << i)) == (1 << i) ? 0x01 : 0x00);    //1 own 0 not own
 				buf.WriteInt8(0x00);
 				buf.WriteInt32(ExpansionLookup[i]);                                    //from eqlsstr_us.txt
@@ -667,7 +678,7 @@ void Client::SendExpansionPacketData(PlayerLoginReply &plrs)
 				buf.WriteInt32(0xFFFFFFFF);
 			}
 
-			auto out = std::make_unique<EQApplicationPacket>(OP_LoginExpansionPacketData, buf);
+			auto out = std::make_unique<EQApplicationPacket>(OP_LoginExpansionPacketData, std::move(buf));
 			m_connection->QueuePacket(out.get());
 
 		}

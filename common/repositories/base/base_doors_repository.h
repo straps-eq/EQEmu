@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 /**
  * DO NOT MODIFY THIS FILE
  *
@@ -50,7 +67,7 @@ public:
 		float       buffer;
 		uint32_t    client_version_mask;
 		int16_t     is_ldon_door;
-		int16_t     close_timer_ms;
+		uint16_t    close_timer_ms;
 		int32_t     dz_switch_id;
 		int8_t      min_expansion;
 		int8_t      max_expansion;
@@ -290,7 +307,7 @@ public:
 			e.buffer                 = row[28] ? strtof(row[28], nullptr) : 0;
 			e.client_version_mask    = row[29] ? static_cast<uint32_t>(strtoul(row[29], nullptr, 10)) : 4294967295;
 			e.is_ldon_door           = row[30] ? static_cast<int16_t>(atoi(row[30])) : 0;
-			e.close_timer_ms         = row[31] ? static_cast<int16_t>(atoi(row[31])) : 5000;
+			e.close_timer_ms         = row[31] ? static_cast<uint16_t>(strtoul(row[31], nullptr, 10)) : 5000;
 			e.dz_switch_id           = row[32] ? static_cast<int32_t>(atoi(row[32])) : 0;
 			e.min_expansion          = row[33] ? static_cast<int8_t>(atoi(row[33])) : -1;
 			e.max_expansion          = row[34] ? static_cast<int8_t>(atoi(row[34])) : -1;
@@ -553,7 +570,7 @@ public:
 			e.buffer                 = row[28] ? strtof(row[28], nullptr) : 0;
 			e.client_version_mask    = row[29] ? static_cast<uint32_t>(strtoul(row[29], nullptr, 10)) : 4294967295;
 			e.is_ldon_door           = row[30] ? static_cast<int16_t>(atoi(row[30])) : 0;
-			e.close_timer_ms         = row[31] ? static_cast<int16_t>(atoi(row[31])) : 5000;
+			e.close_timer_ms         = row[31] ? static_cast<uint16_t>(strtoul(row[31], nullptr, 10)) : 5000;
 			e.dz_switch_id           = row[32] ? static_cast<int32_t>(atoi(row[32])) : 0;
 			e.min_expansion          = row[33] ? static_cast<int8_t>(atoi(row[33])) : -1;
 			e.max_expansion          = row[34] ? static_cast<int8_t>(atoi(row[34])) : -1;
@@ -614,7 +631,7 @@ public:
 			e.buffer                 = row[28] ? strtof(row[28], nullptr) : 0;
 			e.client_version_mask    = row[29] ? static_cast<uint32_t>(strtoul(row[29], nullptr, 10)) : 4294967295;
 			e.is_ldon_door           = row[30] ? static_cast<int16_t>(atoi(row[30])) : 0;
-			e.close_timer_ms         = row[31] ? static_cast<int16_t>(atoi(row[31])) : 5000;
+			e.close_timer_ms         = row[31] ? static_cast<uint16_t>(strtoul(row[31], nullptr, 10)) : 5000;
 			e.dz_switch_id           = row[32] ? static_cast<int32_t>(atoi(row[32])) : 0;
 			e.min_expansion          = row[33] ? static_cast<int8_t>(atoi(row[33])) : -1;
 			e.max_expansion          = row[34] ? static_cast<int8_t>(atoi(row[34])) : -1;

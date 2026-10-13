@@ -1,3 +1,20 @@
+/*	EQEmu: EQEmulator
+
+	Copyright (C) 2001-2026 EQEmu Development Team
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #ifdef LUA_EQEMU
@@ -197,7 +214,7 @@ public:
 	void UnmemSpellAll(bool update_client);
 	int FindEmptyMemSlot();
 	uint16 FindMemmedSpellBySlot(int slot);
-	int FindMemmedSpellBySpellID(uint16 spell_id);
+	int FindMemmedSpellBySpellID(int32 spell_id);
 	int MemmedCount();
 	luabind::object GetLearnableDisciplines(lua_State* L);
 	luabind::object GetLearnableDisciplines(lua_State* L, uint8 min_level);
@@ -215,16 +232,16 @@ public:
 	void UnscribeSpell(int slot, bool update_client);
 	void UnscribeSpellAll();
 	void UnscribeSpellAll(bool update_client);
-	void UnscribeSpellBySpellID(uint16 spell_id);
-	void UnscribeSpellBySpellID(uint16 spell_id, bool update_client);
+	void UnscribeSpellBySpellID(int32 spell_id);
+	void UnscribeSpellBySpellID(int32 spell_id, bool update_client);
 	void TrainDisc(int itemid);
 	uint16 LearnDisciplines(uint8 min_level, uint8 max_level);
 	void TrainDiscBySpellID(int32 spell_id);
 	int GetDiscSlotBySpellID(int32 spell_id);
 	void UntrainDisc(int slot);
 	void UntrainDisc(int slot, bool update_client);
-	void UntrainDiscBySpellID(uint16 spell_id);
-	void UntrainDiscBySpellID(uint16 spell_id, bool update_client);
+	void UntrainDiscBySpellID(int32 spell_id);
+	void UntrainDiscBySpellID(int32 spell_id, bool update_client);
 	void UntrainDiscAll();
 	void UntrainDiscAll(bool update_client);
 	bool IsStanding();
@@ -277,10 +294,10 @@ public:
 	void ResetDisciplineTimer(uint32 timer_id);
 	void ResetCastbarCooldownBySlot(int slot);
 	void ResetAllCastbarCooldowns();
-	void ResetCastbarCooldownBySpellID(uint32 spell_id);
+	void ResetCastbarCooldownBySpellID(int32 spell_id);
 	void ResetAllDisciplineTimers();
 	bool UseDiscipline(int spell_id, int target_id);
-	bool HasDisciplineLearned(uint16 spell_id);
+	bool HasDisciplineLearned(int32 spell_id);
 	int GetCharacterFactionLevel(int faction_id);
 	void ClearZoneFlag(uint32 zone_id);
 	bool HasZoneFlag(uint32 zone_id);
@@ -352,7 +369,7 @@ public:
 	int GetNextAvailableSpellBookSlot(int start);
 	int GetNextAvailableDisciplineSlot();
 	int GetNextAvailableDisciplineSlot(int starting_slot);
-	uint32 GetSpellIDByBookSlot(int book_slot);
+	int32 GetSpellIDByBookSlot(int book_slot);
 	int FindSpellBookSlotBySpellID(int spell_id);
 	void UpdateTaskActivity(int task, int activity, int count);
 	void AssignTask(int task_id);

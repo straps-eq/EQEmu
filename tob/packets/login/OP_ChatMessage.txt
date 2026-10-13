@@ -1,0 +1,19 @@
+// 0x01
+
+struct LoginBase
+{
+    u32 sequence_id;
+    u8 compressed;
+    u8 encrypt_type;
+    u32 unknown08;
+};
+
+struct Packet {
+    LoginBase base;
+    u8 success;
+    s32 error_str_id;
+    char error_msg[];
+    char other_msg[];
+};
+
+Packet packet @0x00;
