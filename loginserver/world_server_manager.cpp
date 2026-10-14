@@ -22,7 +22,9 @@
 #include "loginserver/login_server.h"
 #include "loginserver/login_types.h"
 
+#include <algorithm>
 #include <utility>
+#include <vector>
 #include <arpa/inet.h>
 
 extern LoginServer server;
@@ -131,6 +133,15 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 	// ServerListReply_Struct
 	buf.WriteInt32(server_count);
 
+	struct ListEntry {
+		uint32                 players;
+		const WorldServer     *world;
+		bool                   use_local_ip;
+		const FederatedServer *federated;
+	};
+	std::vector<ListEntry> entries;
+	entries.reserve(server_count);
+
 	for (const auto &s: m_world_servers) {
 		if (!s->IsAuthorizedToList()) {
 			LogDebug(
@@ -157,11 +168,31 @@ std::unique_ptr<EQApplicationPacket> WorldServerManager::CreateServerListPacket(
 			use_local_ip ? "Local" : "Remote"
 		);
 
-		s->SerializeForClientServerList(buf, use_local_ip, client->GetClientVersion());
+		entries.push_back({s->GetPlayersOnline(), s.get(), use_local_ip, nullptr});
 	}
 
-	// Append federated servers (synced from federation peers, not directly connected)
+	// Federated servers (synced from federation peers, not directly connected)
 	for (const auto &fs: m_federated_servers) {
+		entries.push_back({fs.players_online, nullptr, false, &fs});
+	}
+
+	// The ToB server select has no Legends/Preferred grouping, so order it by population.
+	// Older clients group by list type themselves and keep connection order.
+	if (client->GetClientVersion() == cv_tob) {
+		std::stable_sort(
+			entries.begin(),
+			entries.end(),
+			[](const ListEntry &a, const ListEntry &b) { return a.players > b.players; }
+		);
+	}
+
+	for (const auto &e: entries) {
+		if (e.world) {
+			e.world->SerializeForClientServerList(buf, e.use_local_ip, client->GetClientVersion());
+			continue;
+		}
+
+		const auto &fs = *e.federated;
 		LogDebug(
 			"CreateServerListPacket | Federated server [{}] IP [{}] players [{}] from node [{}]",
 			fs.long_name,
