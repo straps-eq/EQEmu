@@ -223,7 +223,12 @@ ClientManager::ClientManager()
 	std::string live_opcodes = server.config.GetVariableString("client_configuration", "live_opcodes", "");
 
 	if (live_port > 0 && !live_opcodes.empty()) {
-		std::string live_path = fmt::format("{}/{}", PathManager::Instance()->GetOpcodePath(), live_opcodes);
+		// A value with a slash is a path (relative to the working directory, e.g.
+		// "data/login_opcodes_live_2026_09_17.conf" on the persistent data volume);
+		// a bare file name resolves against the opcode directory like the others.
+		std::string live_path = live_opcodes.find('/') != std::string::npos
+			? live_opcodes
+			: fmt::format("{}/{}", PathManager::Instance()->GetOpcodePath(), live_opcodes);
 		auto       *live_ops  = new RegularOpcodeManager;
 
 		if (!File::Exists(live_path) || !live_ops->LoadOpcodes(live_path.c_str())) {
