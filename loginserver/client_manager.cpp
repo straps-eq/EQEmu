@@ -214,6 +214,45 @@ ClientManager::ClientManager()
 			m_clients.push_back(c);
 		}
 	);
+
+	// Optional listener for the current live client build. Live builds reshuffle
+	// login opcodes every patch but have kept ToB's packet layouts, so this is the
+	// ToB protocol with its own opcode file. It stays off until both live_port and
+	// live_opcodes are set and the file exists, so a missing file never stops login.
+	int         live_port    = server.config.GetVariableInt("client_configuration", "live_port", 0);
+	std::string live_opcodes = server.config.GetVariableString("client_configuration", "live_opcodes", "");
+
+	if (live_port > 0 && !live_opcodes.empty()) {
+		std::string live_path = fmt::format("{}/{}", PathManager::Instance()->GetOpcodePath(), live_opcodes);
+		auto       *live_ops  = new RegularOpcodeManager;
+
+		if (!File::Exists(live_path) || !live_ops->LoadOpcodes(live_path.c_str())) {
+			LogError("ClientManager live client listener disabled: couldn't load opcodes [{}]", live_path);
+			delete live_ops;
+		}
+		else {
+			m_live_ops = live_ops;
+
+			EQStreamManagerInterfaceOptions live_opts(live_port, false, false);
+			m_live_stream = new EQ::Net::EQStreamManager(live_opts);
+
+			LogInfo("ClientManager live client listener on port [{}] using [{}]", live_port, live_opcodes);
+
+			m_live_stream->OnNewConnection(
+				[this](std::shared_ptr<EQ::Net::EQStream> stream) {
+					LogInfo(
+						"New live client connection from [{}:{}]",
+						long2ip(stream->GetRemoteIP()),
+						stream->GetRemotePort()
+					);
+
+					stream->SetOpcodeManager(&m_live_ops);
+					Client *c = new Client(stream, cv_tob);
+					m_clients.push_back(c);
+				}
+			);
+		}
+	}
 }
 
 ClientManager::~ClientManager()
@@ -222,6 +261,8 @@ ClientManager::~ClientManager()
 	delete m_titanium_ops;
 	delete m_sod_stream;
 	delete m_sod_ops;
+	delete m_live_stream;
+	delete m_live_ops;
 }
 
 void ClientManager::Process()

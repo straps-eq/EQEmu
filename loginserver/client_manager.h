@@ -39,4 +39,6 @@ private:
 	EQ::Net::EQStreamManager *m_sod_stream;
 	OpcodeManager            *m_tob_ops;
 	EQ::Net::EQStreamManager *m_tob_stream;
+	OpcodeManager            *m_live_ops    = nullptr;
+	EQ::Net::EQStreamManager *m_live_stream = nullptr;
 };
